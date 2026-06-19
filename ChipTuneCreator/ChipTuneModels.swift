@@ -272,6 +272,7 @@ struct SequencerNote: Codable, Identifiable, Equatable {
 enum ChipTuneEditMode: String, CaseIterable, Identifiable {
     case draw
     case erase
+    case scroll
 
     var id: String { rawValue }
 }

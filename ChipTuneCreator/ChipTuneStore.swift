@@ -337,6 +337,8 @@ final class ChipTuneStore: ObservableObject {
             addNote(row: row, step: step)
         case .erase:
             deleteNote(row: row, step: step)
+        case .scroll:
+            break
         }
     }
 

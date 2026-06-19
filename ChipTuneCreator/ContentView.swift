@@ -161,9 +161,10 @@ private struct TransportPanel: View {
                 Picker("Mode", selection: $store.editMode) {
                     Label("Draw", systemImage: "pencil.tip.crop.circle.fill").tag(ChipTuneEditMode.draw)
                     Label("Erase", systemImage: "eraser.fill").tag(ChipTuneEditMode.erase)
+                    Label("Scroll", systemImage: "hand.draw.fill").tag(ChipTuneEditMode.scroll)
                 }
                 .pickerStyle(.segmented)
-                .frame(width: 172)
+                .frame(width: 254)
 
                 TempoMenu(store: store)
 
@@ -468,7 +469,7 @@ private struct SequencerGridView: View {
                             height: CGFloat(visibleRows.count) * rowHeight
                         )
                         .contentShape(Rectangle())
-                        .gesture(gridPaintGesture(visibleRows: visibleRows))
+                        .paintGesture(enabled: store.editMode != .scroll, gesture: gridPaintGesture(visibleRows: visibleRows))
                     }
                     .background(ThreeFingerScrollBridge())
                 }
@@ -1230,6 +1231,17 @@ private struct ThreeFingerScrollBridge: UIViewRepresentable {
                 y: min(max(scrollView.contentOffset.y + dy, minY), maxY)
             )
             scrollView.setContentOffset(nextOffset, animated: false)
+        }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func paintGesture<PaintGesture: Gesture>(enabled: Bool, gesture: PaintGesture) -> some View {
+        if enabled {
+            self.gesture(gesture)
+        } else {
+            self
         }
     }
 }
