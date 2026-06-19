@@ -21,16 +21,18 @@ final class ChipTuneStore: ObservableObject {
     private var nextPlaybackStep = 0
 
     init() {
+        let loadedProject: ChipTuneProject
         if let data = UserDefaults.standard.data(forKey: projectDefaultsKey),
            let decoded = try? JSONDecoder().decode(ChipTuneProject.self, from: data) {
-            project = decoded
+            loadedProject = decoded
         } else {
-            project = ChipTuneProject.starter()
+            loadedProject = ChipTuneProject.starter()
         }
 
-        selectedChannelID = project.channels.first?.id ?? "pulse1"
+        project = loadedProject
+        selectedChannelID = loadedProject.channels.first?.id ?? "pulse1"
         remoteURLString = UserDefaults.standard.string(forKey: remoteURLDefaultsKey) ?? Self.defaultRemoteURL
-        audio.configure(channels: project.channels)
+        audio.configure(channels: loadedProject.channels)
     }
 
     var selectedChannel: ChipTuneChannel {
