@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct ContentView: View {
     @StateObject private var store = ChipTuneStore()
@@ -160,10 +161,9 @@ private struct TransportPanel: View {
                 Picker("Mode", selection: $store.editMode) {
                     Label("Draw", systemImage: "pencil.tip.crop.circle.fill").tag(ChipTuneEditMode.draw)
                     Label("Erase", systemImage: "eraser.fill").tag(ChipTuneEditMode.erase)
-                    Label("Scroll", systemImage: "hand.draw.fill").tag(ChipTuneEditMode.scroll)
                 }
                 .pickerStyle(.segmented)
-                .frame(width: 254)
+                .frame(width: 172)
 
                 TempoMenu(store: store)
 
@@ -468,8 +468,9 @@ private struct SequencerGridView: View {
                             height: CGFloat(visibleRows.count) * rowHeight
                         )
                         .contentShape(Rectangle())
-                        .paintGesture(enabled: store.editMode != .scroll, gesture: gridPaintGesture(visibleRows: visibleRows))
+                        .gesture(gridPaintGesture(visibleRows: visibleRows))
                     }
+                    .background(ThreeFingerScrollBridge())
                 }
             }
         }
@@ -1128,13 +1129,107 @@ private struct ResizeSession {
     let originalLength: Int
 }
 
-private extension View {
-    @ViewBuilder
-    func paintGesture<PaintGesture: Gesture>(enabled: Bool, gesture: PaintGesture) -> some View {
-        if enabled {
-            self.gesture(gesture)
-        } else {
-            self
+private struct ThreeFingerScrollBridge: UIViewRepresentable {
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView(frame: .zero)
+        view.isUserInteractionEnabled = false
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        DispatchQueue.main.async {
+            context.coordinator.install(from: uiView)
+        }
+    }
+
+    static func dismantleUIView(_ uiView: UIView, coordinator: Coordinator) {
+        coordinator.uninstall()
+    }
+
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        private weak var installedScrollView: UIScrollView?
+        private var panGesture: UIPanGestureRecognizer?
+
+        func install(from markerView: UIView) {
+            guard let scrollView = Self.ancestorScrollViews(from: markerView)
+                .first(where: { $0.contentSize.width > $0.bounds.width + 1 }) else {
+                return
+            }
+
+            guard installedScrollView !== scrollView else { return }
+            uninstall()
+
+            let gesture = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
+            gesture.minimumNumberOfTouches = 3
+            gesture.maximumNumberOfTouches = 3
+            gesture.cancelsTouchesInView = true
+            gesture.delaysTouchesBegan = false
+            gesture.delaysTouchesEnded = false
+            gesture.delegate = self
+            scrollView.addGestureRecognizer(gesture)
+
+            panGesture = gesture
+            installedScrollView = scrollView
+        }
+
+        func uninstall() {
+            if let panGesture, let installedScrollView {
+                installedScrollView.removeGestureRecognizer(panGesture)
+            }
+            panGesture = nil
+            installedScrollView = nil
+        }
+
+        @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
+            guard let hostView = gesture.view else { return }
+            let translation = gesture.translation(in: hostView)
+            let scrollViews = Self.ancestorScrollViews(from: hostView)
+            let horizontalScrollView = scrollViews.first { $0.contentSize.width > $0.bounds.width + 1 }
+            let verticalScrollView = scrollViews.first { scrollView in
+                scrollView !== horizontalScrollView && scrollView.contentSize.height > scrollView.bounds.height + 1
+            }
+
+            if let horizontalScrollView {
+                Self.pan(scrollView: horizontalScrollView, dx: -translation.x, dy: 0)
+            }
+            if let verticalScrollView {
+                Self.pan(scrollView: verticalScrollView, dx: 0, dy: -translation.y)
+            }
+
+            gesture.setTranslation(.zero, in: hostView)
+        }
+
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+            true
+        }
+
+        private static func ancestorScrollViews(from view: UIView) -> [UIScrollView] {
+            var scrollViews: [UIScrollView] = []
+            var currentView: UIView? = view
+            while let view = currentView {
+                if let scrollView = view as? UIScrollView {
+                    scrollViews.append(scrollView)
+                }
+                currentView = view.superview
+            }
+            return scrollViews
+        }
+
+        private static func pan(scrollView: UIScrollView, dx: CGFloat, dy: CGFloat) {
+            let inset = scrollView.adjustedContentInset
+            let minX = -inset.left
+            let minY = -inset.top
+            let maxX = max(minX, scrollView.contentSize.width - scrollView.bounds.width + inset.right)
+            let maxY = max(minY, scrollView.contentSize.height - scrollView.bounds.height + inset.bottom)
+            let nextOffset = CGPoint(
+                x: min(max(scrollView.contentOffset.x + dx, minX), maxX),
+                y: min(max(scrollView.contentOffset.y + dy, minY), maxY)
+            )
+            scrollView.setContentOffset(nextOffset, animated: false)
         }
     }
 }
