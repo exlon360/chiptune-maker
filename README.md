@@ -10,6 +10,9 @@ ChipTune Maker is a SwiftUI iOS chiptune sequencer with a tracker-style editor a
 - Tap or drag to draw notes.
 - Erase mode for removing notes.
 - `Sets` button for jumping between Draft, playable Song Notes, the full `Suffocated by Hatred` song page, or More to cycle sets.
+- Loop region lane above the bar markers with draggable start/end handles and loop playback.
+- Transport tempo selector with common BPM presets and one-BPM nudges.
+- Key selector that folds the piano roll to only notes in the selected key/scale.
 - Playable `Suffocated by Hatred` note bank with 36 parsed pitches from the song.
 - Hold/drag a note horizontally to extend or shorten it, or double-tap a note to arm resizing first.
 - Tap a note to select it, then adjust that note's own volume and length in the mixer.

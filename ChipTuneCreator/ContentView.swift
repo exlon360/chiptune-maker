@@ -139,6 +139,8 @@ private struct TransportPanel: View {
                 .pickerStyle(.segmented)
                 .frame(width: 172)
 
+                TempoMenu(store: store)
+
                 Stepper(value: Binding(
                     get: { store.selectedLength },
                     set: { store.setSelectedLength($0) }
@@ -148,6 +150,8 @@ private struct TransportPanel: View {
                         .frame(minWidth: 54)
                 }
 
+                LoopMenu(store: store)
+                KeyMenu(store: store)
                 SongLengthMenu(store: store)
 
                 Button {
@@ -169,6 +173,128 @@ private struct TransportPanel: View {
             .padding(.vertical, 1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct TempoMenu: View {
+    @ObservedObject var store: ChipTuneStore
+
+    private let presets = [96, 120, 140, 156, 172, 190]
+
+    var body: some View {
+        Menu {
+            ForEach(presets, id: \.self) { tempo in
+                Button {
+                    store.setTempo(Double(tempo))
+                } label: {
+                    Label("\(tempo) BPM", systemImage: Int(store.project.tempo) == tempo ? "checkmark.circle.fill" : "metronome")
+                }
+            }
+
+            Divider()
+
+            Button {
+                store.nudgeTempo(by: -1)
+            } label: {
+                Label("-1 BPM", systemImage: "minus")
+            }
+
+            Button {
+                store.nudgeTempo(by: 1)
+            } label: {
+                Label("+1 BPM", systemImage: "plus")
+            }
+        } label: {
+            Label("\(Int(store.project.tempo))", systemImage: "metronome.fill")
+                .font(.caption.weight(.black))
+                .frame(width: 76, height: 34)
+        }
+        .buttonStyle(ChipIconButtonStyle(tint: .chipGold))
+    }
+}
+
+private struct LoopMenu: View {
+    @ObservedObject var store: ChipTuneStore
+
+    var body: some View {
+        Menu {
+            Button {
+                store.setLoopEnabled(!store.isLooping)
+            } label: {
+                Label(store.isLooping ? "Loop Off" : "Loop On", systemImage: store.isLooping ? "repeat.circle.fill" : "repeat")
+            }
+
+            Divider()
+
+            ForEach([16, 32, 64, 128], id: \.self) { length in
+                Button {
+                    store.setLoopLength(length)
+                    store.setLoopEnabled(true)
+                } label: {
+                    Label("\(length) steps", systemImage: length == store.loopEndStep - store.loopStartStep ? "checkmark.circle.fill" : "arrow.left.and.right")
+                }
+            }
+
+            Divider()
+
+            Button {
+                store.shiftLoop(by: -16)
+            } label: {
+                Label("Back 16", systemImage: "arrow.left")
+            }
+
+            Button {
+                store.shiftLoop(by: 16)
+            } label: {
+                Label("Forward 16", systemImage: "arrow.right")
+            }
+        } label: {
+            Label(store.loopTitle, systemImage: store.isLooping ? "repeat.circle.fill" : "repeat")
+                .font(.caption.weight(.black))
+                .frame(width: 96, height: 34)
+        }
+        .buttonStyle(ChipIconButtonStyle(tint: store.isLooping ? .chipMint : .chipSky))
+    }
+}
+
+private struct KeyMenu: View {
+    @ObservedObject var store: ChipTuneStore
+
+    var body: some View {
+        Menu {
+            Button {
+                store.setKeyFoldEnabled(false)
+            } label: {
+                Label("All Notes", systemImage: store.keyFoldEnabled ? "pianokeys" : "checkmark.circle.fill")
+            }
+
+            Divider()
+
+            ForEach(0..<MusicNote.sharpNames.count, id: \.self) { root in
+                Button {
+                    store.setKeyRoot(root)
+                } label: {
+                    Label(MusicNote.sharpNames[root], systemImage: store.keyFoldEnabled && store.selectedKeyRoot == root ? "checkmark.circle.fill" : "music.note")
+                }
+            }
+
+            Divider()
+
+            ForEach(PianoRollScale.allCases) { scale in
+                Button {
+                    store.setScale(scale)
+                } label: {
+                    Label(scale.title, systemImage: store.keyFoldEnabled && store.selectedScale == scale ? "checkmark.circle.fill" : "line.3.horizontal.decrease.circle")
+                }
+            }
+        } label: {
+            Label(store.keyFilterTitle, systemImage: store.keyFoldEnabled ? "line.3.horizontal.decrease.circle.fill" : "pianokeys")
+                .font(.caption.weight(.black))
+                .lineLimit(1)
+                .minimumScaleFactor(0.68)
+                .frame(width: 122, height: 34)
+        }
+        .buttonStyle(ChipIconButtonStyle(tint: store.keyFoldEnabled ? .chipMint : .chipSky))
     }
 }
 
@@ -226,18 +352,25 @@ private struct SequencerGridView: View {
     private let stepWidth: CGFloat = 32
     private let labelWidth: CGFloat = 68
     private let headerHeight: CGFloat = 24
+    private let loopHeight: CGFloat = 22
 
     var body: some View {
+        let visibleRows = store.visibleRows
+        let visibleIndexByRow = Dictionary(uniqueKeysWithValues: visibleRows.enumerated().map { ($0.element.index, $0.offset) })
+
         ScrollView(.vertical, showsIndicators: true) {
             HStack(alignment: .top, spacing: 0) {
                 VStack(spacing: 1) {
+                    LoopLaneLabel(store: store)
+                        .frame(width: labelWidth, height: loopHeight)
+
                     Color.clear.frame(width: labelWidth, height: headerHeight)
 
-                    ForEach(Array(store.project.rowNotes.enumerated()), id: \.offset) { index, note in
+                    ForEach(visibleRows) { row in
                         NoteRowMenu(
-                            note: note,
+                            note: row.note,
                             palette: MusicNote.trackerPalette().reversed(),
-                            action: { nextNote in store.changeRowNote(row: index, to: nextNote) }
+                            action: { nextNote in store.changeRowNote(row: row.index, to: nextNote) }
                         )
                         .frame(width: labelWidth, height: rowHeight)
                     }
@@ -245,18 +378,21 @@ private struct SequencerGridView: View {
 
                 ScrollView(.horizontal, showsIndicators: true) {
                     VStack(spacing: 1) {
+                        LoopRegionBar(store: store, steps: store.project.steps, stepWidth: stepWidth, height: loopHeight)
+
                         StepHeader(steps: store.project.steps, stepWidth: stepWidth, height: headerHeight)
 
                         ZStack(alignment: .topLeading) {
                             GridBackground(
-                                rows: store.project.rowNotes.count,
+                                rows: visibleRows.count,
                                 steps: store.project.steps,
                                 rowHeight: rowHeight,
                                 stepWidth: stepWidth
                             )
 
-                            ForEach(store.notesForSelectedChannel) { note in
+                            ForEach(store.notesForSelectedChannel.filter { visibleIndexByRow[$0.row] != nil }) { note in
                                 let displayNote = store.project.rowNotes.indices.contains(note.row) ? store.project.rowNotes[note.row] : MusicNote(semitone: 0, octave: 4)
+                                let visibleRow = visibleIndexByRow[note.row] ?? 0
                                 NoteBlock(
                                     note: note,
                                     displayNote: displayNote,
@@ -289,24 +425,24 @@ private struct SequencerGridView: View {
                                 )
                                 .offset(
                                     x: CGFloat(note.startStep) * stepWidth + 1,
-                                    y: CGFloat(note.row) * rowHeight + 2
+                                    y: CGFloat(visibleRow) * rowHeight + 2
                                 )
                             }
 
                             if store.isPlaying {
                                 Rectangle()
                                     .fill(Color.chipMint.opacity(0.9))
-                                    .frame(width: 2, height: CGFloat(store.project.rowNotes.count) * rowHeight)
+                                    .frame(width: 2, height: CGFloat(visibleRows.count) * rowHeight)
                                     .offset(x: CGFloat(store.playheadStep) * stepWidth)
                                     .shadow(color: .chipMint.opacity(0.8), radius: 6)
                             }
                         }
                         .frame(
                             width: CGFloat(store.project.steps) * stepWidth,
-                            height: CGFloat(store.project.rowNotes.count) * rowHeight
+                            height: CGFloat(visibleRows.count) * rowHeight
                         )
                         .contentShape(Rectangle())
-                        .gesture(gridPaintGesture)
+                        .gesture(gridPaintGesture(visibleRows: visibleRows))
                     }
                 }
             }
@@ -318,11 +454,11 @@ private struct SequencerGridView: View {
         }
     }
 
-    private var gridPaintGesture: some Gesture {
+    private func gridPaintGesture(visibleRows: [PianoRollRow]) -> some Gesture {
         DragGesture(minimumDistance: 0)
             .onChanged { value in
                 guard isResizingNote == false else { return }
-                guard let point = gridPoint(for: value.location), point != lastPaintedPoint else { return }
+                guard let point = gridPoint(for: value.location, visibleRows: visibleRows), point != lastPaintedPoint else { return }
                 lastPaintedPoint = point
                 store.applyGridInteraction(row: point.row, step: point.step)
             }
@@ -331,16 +467,16 @@ private struct SequencerGridView: View {
             }
     }
 
-    private func gridPoint(for location: CGPoint) -> GridPaintPoint? {
-        let row = Int(location.y / rowHeight)
+    private func gridPoint(for location: CGPoint, visibleRows: [PianoRollRow]) -> GridPaintPoint? {
+        let visibleRow = Int(location.y / rowHeight)
         let step = Int(location.x / stepWidth)
-        guard row >= 0,
-              row < store.project.rowNotes.count,
+        guard visibleRow >= 0,
+              visibleRow < visibleRows.count,
               step >= 0,
               step < store.project.steps else {
             return nil
         }
-        return GridPaintPoint(row: row, step: step)
+        return GridPaintPoint(row: visibleRows[visibleRow].index, step: step)
     }
 
     private func resize(note: SequencerNote, translation: CGFloat) {
@@ -403,6 +539,95 @@ private struct SongNotesPanel: View {
                 .stroke(Color.chipMint.opacity(0.16), lineWidth: 1)
         }
     }
+}
+
+private struct LoopLaneLabel: View {
+    @ObservedObject var store: ChipTuneStore
+
+    var body: some View {
+        Button {
+            store.setLoopEnabled(!store.isLooping)
+        } label: {
+            Label("Loop", systemImage: store.isLooping ? "repeat.circle.fill" : "repeat")
+                .font(.caption2.weight(.black))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .buttonStyle(ChipIconButtonStyle(tint: store.isLooping ? .chipMint : .chipSky))
+    }
+}
+
+private struct LoopRegionBar: View {
+    @ObservedObject var store: ChipTuneStore
+    let steps: Int
+    let stepWidth: CGFloat
+    let height: CGFloat
+
+    @State private var activeEdge: LoopDragEdge?
+
+    var body: some View {
+        Canvas { context, size in
+            context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Color.white.opacity(0.025)))
+
+            let startX = CGFloat(store.loopStartStep) * stepWidth
+            let endX = CGFloat(store.loopEndStep) * stepWidth
+            let region = CGRect(x: startX, y: 3, width: max(stepWidth, endX - startX), height: height - 6)
+            let tint = store.isLooping ? Color.chipMint : Color.chipSky.opacity(0.62)
+            context.fill(Path(region), with: .color(tint.opacity(store.isLooping ? 0.32 : 0.16)))
+            context.stroke(Path(region), with: .color(tint.opacity(0.78)), lineWidth: 1)
+
+            for x in [startX, endX] {
+                let handle = CGRect(x: x - 2, y: 1, width: 4, height: height - 2)
+                context.fill(Path(handle), with: .color(tint.opacity(0.94)))
+            }
+
+            let text = Text(store.loopTitle)
+                .font(.caption2.weight(.black))
+                .foregroundStyle(tint)
+            context.draw(text, at: CGPoint(x: region.midX, y: height / 2), anchor: .center)
+        }
+        .frame(width: max(stepWidth, CGFloat(max(steps, 1)) * stepWidth), height: height)
+        .contentShape(Rectangle())
+        .gesture(loopDragGesture)
+    }
+
+    private var loopDragGesture: some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                let step = stepIndex(for: value.location.x)
+                if activeEdge == nil {
+                    activeEdge = edge(for: value.location.x)
+                    store.setLoopEnabled(true)
+                }
+
+                switch activeEdge {
+                case .start:
+                    store.setLoopStart(min(step, store.loopEndStep - 1))
+                case .end:
+                    store.setLoopEnd(max(step, store.loopStartStep + 1))
+                case .none:
+                    break
+                }
+            }
+            .onEnded { _ in
+                activeEdge = nil
+            }
+    }
+
+    private func stepIndex(for x: CGFloat) -> Int {
+        min(max(Int((x / stepWidth).rounded()), 0), max(steps, 1))
+    }
+
+    private func edge(for x: CGFloat) -> LoopDragEdge {
+        let startX = CGFloat(store.loopStartStep) * stepWidth
+        let endX = CGFloat(store.loopEndStep) * stepWidth
+        return abs(x - startX) <= abs(x - endX) ? .start : .end
+    }
+}
+
+private enum LoopDragEdge {
+    case start
+    case end
 }
 
 private struct StepHeader: View {

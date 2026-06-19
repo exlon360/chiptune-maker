@@ -18,11 +18,23 @@ final class ChipTuneStore: ObservableObject {
     @Published var remoteURLString: String
     @Published var statusText = "Ready"
     @Published var selectedNoteID: UUID?
+    @Published var isLooping = false
+    @Published var loopStartStep = 0
+    @Published var loopEndStep = 16
+    @Published var keyFoldEnabled = false
+    @Published var selectedKeyRoot = 0
+    @Published var selectedScale: PianoRollScale = .minor
 
     private let projectDefaultsKey = "ChipTuneCreator.project"
     private let projectPageDefaultsPrefix = "ChipTuneCreator.project.page."
     private let currentPageDefaultsKey = "ChipTuneCreator.currentPage"
     private let remoteURLDefaultsKey = "ChipTuneCreator.remoteURL"
+    private let loopEnabledDefaultsKey = "ChipTuneCreator.loop.enabled"
+    private let loopStartDefaultsKey = "ChipTuneCreator.loop.start"
+    private let loopEndDefaultsKey = "ChipTuneCreator.loop.end"
+    private let keyFoldDefaultsKey = "ChipTuneCreator.key.fold"
+    private let keyRootDefaultsKey = "ChipTuneCreator.key.root"
+    private let keyScaleDefaultsKey = "ChipTuneCreator.key.scale"
     private let audio = ChiptuneAudioEngine()
     private var playbackTimer: Timer?
     private var nextPlaybackStep = 0
@@ -41,7 +53,21 @@ final class ChipTuneStore: ObservableObject {
         project = normalizedProject
         selectedChannelID = normalizedProject.channels.first?.id ?? "pulse1"
         remoteURLString = UserDefaults.standard.string(forKey: remoteURLDefaultsKey) ?? Self.defaultRemoteURL
+        isLooping = UserDefaults.standard.bool(forKey: loopEnabledDefaultsKey)
+        loopStartStep = UserDefaults.standard.integer(forKey: loopStartDefaultsKey)
+        if UserDefaults.standard.object(forKey: loopEndDefaultsKey) != nil {
+            loopEndStep = UserDefaults.standard.integer(forKey: loopEndDefaultsKey)
+        } else {
+            loopEndStep = min(16, max(normalizedProject.steps, 1))
+        }
+        keyFoldEnabled = UserDefaults.standard.bool(forKey: keyFoldDefaultsKey)
+        selectedKeyRoot = min(max(UserDefaults.standard.integer(forKey: keyRootDefaultsKey), 0), 11)
+        if let savedScale = UserDefaults.standard.string(forKey: keyScaleDefaultsKey),
+           let scale = PianoRollScale(rawValue: savedScale) {
+            selectedScale = scale
+        }
         audio.configure(channels: normalizedProject.channels)
+        normalizeLoopRange()
         warmCurrentSounds()
     }
 
@@ -77,6 +103,22 @@ final class ChipTuneStore: ObservableObject {
         notes(for: selectedChannelID)
     }
 
+    var visibleRows: [PianoRollRow] {
+        project.rowNotes.enumerated().compactMap { index, note in
+            guard keyFoldEnabled == false || isNoteInSelectedKey(note) else { return nil }
+            return PianoRollRow(index: index, note: note)
+        }
+    }
+
+    var keyFilterTitle: String {
+        guard keyFoldEnabled else { return "All Notes" }
+        return "\(MusicNote.sharpNames[selectedKeyRoot]) \(selectedScale.title)"
+    }
+
+    var loopTitle: String {
+        "\(loopStartStep + 1)-\(loopEndStep)"
+    }
+
     var selectedNote: SequencerNote? {
         guard let selectedNoteID else { return nil }
         return project.patterns[selectedChannelID]?.first { $0.id == selectedNoteID }
@@ -91,6 +133,10 @@ final class ChipTuneStore: ObservableObject {
             .sorted { lhs, rhs in
                 lhs.startStep == rhs.startStep ? lhs.row < rhs.row : lhs.startStep < rhs.startStep
             }
+    }
+
+    func visibleRowPosition(for rowIndex: Int) -> Int? {
+        visibleRows.firstIndex { $0.index == rowIndex }
     }
 
     func selectChannel(_ id: String) {
@@ -134,6 +180,7 @@ final class ChipTuneStore: ObservableObject {
         playheadStep = 0
         nextPlaybackStep = 0
         audio.configure(channels: normalizedProject.channels)
+        normalizeLoopRange()
         warmCurrentSounds()
         statusText = pageTitle
     }
@@ -144,6 +191,85 @@ final class ChipTuneStore: ObservableObject {
         if isPlaying {
             startPlaybackTimer()
         }
+    }
+
+    func nudgeTempo(by amount: Double) {
+        setTempo(project.tempo + amount)
+    }
+
+    func setLoopEnabled(_ enabled: Bool) {
+        isLooping = enabled
+        normalizeLoopRange()
+        saveLoopSettings()
+        if enabled && (playheadStep < loopStartStep || playheadStep >= loopEndStep) {
+            playheadStep = loopStartStep
+            nextPlaybackStep = loopStartStep
+        }
+        statusText = enabled ? "Loop \(loopTitle)" : "Loop off"
+    }
+
+    func setLoopStart(_ step: Int) {
+        loopStartStep = min(max(step, 0), max(project.steps - 1, 0))
+        if loopEndStep <= loopStartStep {
+            loopEndStep = min(project.steps, loopStartStep + 1)
+        }
+        normalizeLoopRange()
+        saveLoopSettings()
+        statusText = "Loop \(loopTitle)"
+    }
+
+    func setLoopEnd(_ step: Int) {
+        loopEndStep = min(max(step, 1), max(project.steps, 1))
+        if loopEndStep <= loopStartStep {
+            loopStartStep = max(0, loopEndStep - 1)
+        }
+        normalizeLoopRange()
+        saveLoopSettings()
+        statusText = "Loop \(loopTitle)"
+    }
+
+    func setLoopLength(_ length: Int) {
+        let clampedLength = min(max(length, 1), max(project.steps, 1))
+        if loopStartStep + clampedLength > project.steps {
+            loopStartStep = max(0, project.steps - clampedLength)
+        }
+        loopEndStep = min(project.steps, loopStartStep + clampedLength)
+        normalizeLoopRange()
+        saveLoopSettings()
+        statusText = "Loop \(loopTitle)"
+    }
+
+    func shiftLoop(by amount: Int) {
+        let length = max(1, loopEndStep - loopStartStep)
+        let nextStart = min(max(loopStartStep + amount, 0), max(project.steps - length, 0))
+        loopStartStep = nextStart
+        loopEndStep = min(project.steps, nextStart + length)
+        normalizeLoopRange()
+        saveLoopSettings()
+        statusText = "Loop \(loopTitle)"
+    }
+
+    func setKeyFoldEnabled(_ enabled: Bool) {
+        keyFoldEnabled = enabled
+        selectedNoteID = visibleRowPositionForSelectedNote() == nil ? nil : selectedNoteID
+        saveKeySettings()
+        statusText = enabled ? keyFilterTitle : "All notes"
+    }
+
+    func setKeyRoot(_ root: Int) {
+        selectedKeyRoot = min(max(root, 0), 11)
+        keyFoldEnabled = true
+        selectedNoteID = visibleRowPositionForSelectedNote() == nil ? nil : selectedNoteID
+        saveKeySettings()
+        statusText = keyFilterTitle
+    }
+
+    func setScale(_ scale: PianoRollScale) {
+        selectedScale = scale
+        keyFoldEnabled = true
+        selectedNoteID = visibleRowPositionForSelectedNote() == nil ? nil : selectedNoteID
+        saveKeySettings()
+        statusText = keyFilterTitle
     }
 
     func setSelectedLength(_ length: Int) {
@@ -186,6 +312,7 @@ final class ChipTuneStore: ObservableObject {
                 return clipped
             }
         }
+        normalizeLoopRange()
         if shouldSave {
             saveProject()
         }
@@ -370,7 +497,12 @@ final class ChipTuneStore: ObservableObject {
         audio.configure(channels: project.channels)
         warmCurrentSounds()
         isPlaying = true
-        nextPlaybackStep = playheadStep % max(project.steps, 1)
+        normalizeLoopRange()
+        if isLooping {
+            nextPlaybackStep = (playheadStep >= loopStartStep && playheadStep < loopEndStep) ? playheadStep : loopStartStep
+        } else {
+            nextPlaybackStep = playheadStep % max(project.steps, 1)
+        }
         advanceStep()
         startPlaybackTimer()
         statusText = "Playing"
@@ -398,6 +530,7 @@ final class ChipTuneStore: ObservableObject {
         selectedChannelID = project.channels.first?.id ?? selectedChannelID
         selectedNoteID = nil
         audio.configure(channels: project.channels)
+        normalizeLoopRange()
         warmCurrentSounds()
         saveProject()
         statusText = "Reset"
@@ -566,7 +699,44 @@ final class ChipTuneStore: ObservableObject {
             }
         }
 
-        nextPlaybackStep = (playheadStep + 1) % project.steps
+        let followingStep = playheadStep + 1
+        if isLooping {
+            nextPlaybackStep = followingStep >= loopEndStep ? loopStartStep : followingStep
+        } else {
+            nextPlaybackStep = followingStep % project.steps
+        }
+    }
+
+    private func isNoteInSelectedKey(_ note: MusicNote) -> Bool {
+        let interval = (note.semitone - selectedKeyRoot + 12) % 12
+        return selectedScale.intervals.contains(interval)
+    }
+
+    private func visibleRowPositionForSelectedNote() -> Int? {
+        guard let selectedNote else { return nil }
+        return visibleRowPosition(for: selectedNote.row)
+    }
+
+    private func normalizeLoopRange() {
+        let stepCount = max(project.steps, 1)
+        loopStartStep = min(max(loopStartStep, 0), max(stepCount - 1, 0))
+        loopEndStep = min(max(loopEndStep, loopStartStep + 1), stepCount)
+        if loopEndStep <= loopStartStep {
+            loopStartStep = 0
+            loopEndStep = min(16, stepCount)
+        }
+    }
+
+    private func saveLoopSettings() {
+        UserDefaults.standard.set(isLooping, forKey: loopEnabledDefaultsKey)
+        UserDefaults.standard.set(loopStartStep, forKey: loopStartDefaultsKey)
+        UserDefaults.standard.set(loopEndStep, forKey: loopEndDefaultsKey)
+    }
+
+    private func saveKeySettings() {
+        UserDefaults.standard.set(keyFoldEnabled, forKey: keyFoldDefaultsKey)
+        UserDefaults.standard.set(selectedKeyRoot, forKey: keyRootDefaultsKey)
+        UserDefaults.standard.set(selectedScale.rawValue, forKey: keyScaleDefaultsKey)
     }
 
     private func rangesOverlap(_ lhs: Range<Int>, _ rhs: Range<Int>) -> Bool {

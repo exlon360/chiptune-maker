@@ -86,6 +86,43 @@ struct MusicNote: Codable, Hashable, Identifiable {
     }
 }
 
+enum PianoRollScale: String, CaseIterable, Identifiable {
+    case major
+    case minor
+    case pentatonicMinor
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .major:
+            return "Major"
+        case .minor:
+            return "Minor"
+        case .pentatonicMinor:
+            return "Minor Penta"
+        }
+    }
+
+    var intervals: Set<Int> {
+        switch self {
+        case .major:
+            return [0, 2, 4, 5, 7, 9, 11]
+        case .minor:
+            return [0, 2, 3, 5, 7, 8, 10]
+        case .pentatonicMinor:
+            return [0, 3, 5, 7, 10]
+        }
+    }
+}
+
+struct PianoRollRow: Identifiable, Equatable {
+    let index: Int
+    let note: MusicNote
+
+    var id: Int { index }
+}
+
 enum ChipWaveform: String, Codable, CaseIterable, Hashable, Identifiable {
     case pulse12
     case pulse25
