@@ -242,92 +242,156 @@ struct ChipTuneProject: Codable, Equatable {
             return events
         }
 
-        let extractedLead: [String?] = [
-            "G#4", "F-4", "C#4", "C#4", "F#4", "F#4", "A-4", "A-4",
-            "C-4", "A#4", "A#4", "F-4", "G-5", "D#4", "F#4", "F#4",
-            "C-5", "F-4", "F-4", "G#4", "G#4", "C#4", "D#4", "G#4",
-            "C-4", "F#4", "F#4", "F-4", "F-4", "F-4", "A#4", "F-5"
-        ]
+        func tokens(_ value: String) -> [String?] {
+            value
+                .split(whereSeparator: { $0.isWhitespace })
+                .map { token -> String? in
+                    let noteName = String(token)
+                    return noteName == "--" ? nil : noteName
+                }
+        }
 
-        let extractedBass: [String?] = [
-            "E-3", "F-3", "C#3", "F#3", "F#3", "F#3", "G#3", "A-3",
-            "A#3", "A-3", "A#3", "F-3", "D#3", "D-3", "F#3", "F#3",
-            "F-3", "F-3", "F-3", "C#3", "C#3", "D#3", "D-3", "C#3",
-            "D#3", "F#3", "F#3", "F-3", "F-3", "D#3", "A#3", "A#3"
-        ]
+        let extractedLead = tokens("""
+A#4 A#4 A#4 A#4 A#4 A#4 A#4 A#4 C#5 C#5 -- F-5 F-5 F-5 F-5 F-5
+D#5 D#5 D#5 D#5 D#5 D#5 D#5 D#5 D#5 D#5 -- D#3 D#3 D#3 C#5 C#5
+D#3 D#3 D#3 D#3 D#3 D#3 D#3 D#3 D#3 F-5 -- A#3 F-5 F-5 F-5 F-5
+F-5 F-5 A#3 F#3 F-5 C#5 C#5 C#5 C#5 C#5 C#5 C#5 C#5 C#5 C#5 C#5
+F-3 D#5 D#5 D#5 D#5 C-5 C-5 C-5 E-3 F-3 F-3 C#5 C#5 C#5 C#5 C#5
+A-3 A-4 A-4 A-4 A-4 A#3 A#4 A#4 A#4 A#4 A#4 A#4 A#4 F-4 C#5 --
+F-4 F-5 F-5 F-5 F-5 A#3 D#5 D#5 D#5 D#5 D#5 D#5 D#5 D#5 D#5 D#5
+D#5 D#5 C#5 C#5 C#5 D#3 D#3 D#3 D#3 D#3 D#3 D#3 D#3 D#3 D#3 F-5
+F-5 F-5 F-5 F-5 F-5 -- C#4 -- A#3 C#4 C#4 C#4 C#4 C#4 -- C#5
+C#5 C#5 C#5 C#5 C#5 E-3 F-3 D#5 D#5 D#5 F-3 -- C-5 C-5 C-5 C#5
+C#5 C#5 C#5 F-3 E-3 A-4 A-4 A-4 A-4 A-4 -- -- C#4 F-4 A#3 A#5
+F-4 A#3 F-5 F-5 F-5 F-5 F-4 F#5 A#3 -- F-5 F-5 F-5 C#4 A#3 B-4
+C#4 A-3 A-5 A#3 A-3 A-3 C#4 F-5 A-3 C#4 F-5 A-3 -- F#5 A-3 F-5
+F-5 F-5 F-5 C#4 G#3 B-4 D-5 D#5 D#5 D#5 D#5 G#3 C-5 C-5 C-5 C-5
+G#3 -- C#5 -- F-5 F-5 F-5 F-5 F-5 D#4 C-5 C-5 C-5 C-5 C-5 F-5
+F-3 C-4 F-5 F-3 C-4 C-4 F-3 D#5 C-4 -- A-4 A-4 A-4 A-4 A-4 C-5
+F-4 A#3 A#5 C#4 A#3 -- C#4 F-5 F-5 F-5 F-5 A#3 C#4 F#5 A#3 F-5
+F-4 A#3 F-5 F-4 A#4 D#5 C#4 A-3 A-3 -- A-5 A-3 F-4 F-5 F-5 F-5
+-- -- F#5 C#4 F-5 F-5 F-5 F-5 F-5 A-4 B-4 C#5 D#5 D#5 D#5 D#5
+D#5 C-5 C-5 C-5 C-5 C-5 G#3 C#5 C#5 G#3 F-5 F-5 F-5 F-5 C-4 C-5
+C-5 C-5 C-5 F-3 -- F-5 F-5 F-5 F-5 F-3 D#5 C-4 F-3 D#5 C-4 A-4
+A-4 A-4 A-4 A-4 A#4 A#4 A#4 A#4 A#4 A#4 A#4 A#4 A#4 A#4 A#4 --
+-- -- -- -- -- -- -- -- -- -- A#3 A#3 F-3 F-3 F-3 F#3
+F#3 E-3 F-3 F-3 -- -- D#3 D#3 -- F#3 F#3 F-3 F-3 F-3 A#3 A#3
+A#3 E-3 E-3 E-3 F-3 F-3 F-3 F-3 F-3 -- -- D#3 F-3 F-3 F-3 F#3
+F#3 A-3 A-3 A#3 A#3 A#3 F-3 D#3 D#3 F#3 F-3 F-3 F-3 -- -- D#3
+C#3 -- D-3 F-3 F-3 F-3 F-3 F-3 F-3 A#3 A#3 F-3 F-3 D#3 -- F#3
+-- E-3 F-3 D-3 C#3 -- F-3 -- C#3 F#3 F-3 A-3 A-3 A-3 A#3 A#3
+A#3 E-3 D#3 F-3 F-3 F-3 F-3 F-3 F-3 C#3 -- D#3 D#3 C#3 F#3 F#3
+F#3 E-3 F-3 A#3 A#3 A#3 F-3 D#3 E-3 F#3 F-3 F-3 F-3 F-3 -- D-3
+-- E-3 -- F#3 F#3 F#3 A-3 A-3 A-3 A#3 A#3 F-3 E-3 D#3 F-3 F-3
+F-3 F-3 F-3 -- D-3 C#3 D#3 -- F-3 F-3 F-3 F-3 F-3 E-3 A#3 A#3
+""")
+
+        let extractedBass = tokens("""
+A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3
+A#3 A#3 A#3 A#3 A#3 D#3 D#3 D#3 D#3 D#3 D#3 D#3 D#3 D#3 D#3 D#3
+D#3 D#3 D#3 D#3 D#3 D#3 D#3 D#3 D#3 D#3 -- A#3 A#3 A#3 A#3 A#3
+A#3 A#3 A#3 F#3 F#3 F#3 F#3 F#3 F#3 F#3 F#3 F#3 F#3 F#3 F#3 F#3
+F-3 A-3 A-3 A-3 A-3 C-4 F-3 F-3 F-3 F-3 F-3 E-3 -- F-3 C-4 A-3
+A-3 A-3 A-3 A-3 A-3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3
+A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 D#3 D#3 D#3 D#3 D#3 D#3
+D#3 D#3 D#3 D#3 D#3 D#3 D#3 D#3 D#3 D#3 D#3 D#3 D#3 D#3 D#3 A#3
+A#3 A#3 A#3 F#3 F#3 F#3 F#3 A#3 A#3 F#3 F#3 F#3 F#3 F#3 F#3 F#3
+F#3 F#3 F#3 F#3 F#3 E-3 F-3 F-3 F-3 F-3 F-3 C-4 C-4 C-4 C-4 C-4
+F-3 E-3 E-3 E-3 E-3 A-3 A-3 A-3 A-3 A-3 F-3 F-3 F-3 F-3 A#3 A#3
+A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3
+A-3 A-3 A-3 A-3 A-3 A-3 A-3 A-3 A-3 A-3 A-3 A-3 A-3 A-3 A-3 A-3
+A-3 A-3 A-3 A#3 G#3 G#3 G#3 G#3 G#3 G#3 G#3 G#3 C-4 C-4 C-4 C-4
+C-4 C-4 C-4 -- G#3 G#3 G#3 C-4 C-4 C-4 C-4 C-4 C-4 C-4 C-4 C-4
+C-4 C-4 C-4 C-4 C-4 C-4 C-4 C-4 C-4 -- A-3 -- F-3 A-3 -- F-3
+F-3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 F-3 F-3 A#3 A#3
+A#3 A#3 A#3 F-3 A-3 A-3 A-3 A-3 A-3 A-3 A-3 A-3 A-3 A-3 A-3 --
+-- A-3 A-3 A-3 A-3 A-3 A-3 A-3 A-3 A-3 C-4 G#3 G#3 G#3 G#3 G#3
+G#3 C-4 C-4 C-4 C-4 C-4 G#3 -- C-4 G#3 G#3 G#3 G#3 C-4 C-4 F-3
+F-3 F-3 F-3 F-3 F-3 F-3 F-3 F-3 F-3 F-3 G#3 C-4 F-3 -- C-4 C-4
+C-4 C-4 C-4 C-4 -- A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 A#3 --
+-- -- -- -- -- -- -- -- -- -- A#3 A#3 F-3 F-3 F-3 F#3
+F#3 E-3 F-3 F-3 C#3 -- D#3 D#3 C#3 F#3 F#3 F-3 F-3 F-3 A#3 A#3
+A#3 E-3 E-3 E-3 F-3 F-3 F-3 F-3 F-3 -- C#3 D#3 F-3 F-3 F-3 F#3
+F#3 A-3 A-3 A#3 A#3 A#3 F-3 D#3 D#3 F#3 F-3 F-3 F-3 F-3 -- D#3
+C#3 -- D-3 F-3 F-3 F-3 F-3 F-3 F-3 A#3 A#3 F-3 F-3 D#3 -- F#3
+F-3 F-3 F-3 D-3 C#3 -- F-3 -- C#3 F#3 F-3 A-3 A-3 A-3 A#3 A#3
+A#3 E-3 D#3 F-3 F-3 F-3 F-3 F-3 F-3 C#3 -- D#3 D#3 C#3 F#3 F#3
+F#3 E-3 F-3 A#3 A#3 A#3 F-3 D#3 E-3 F#3 F-3 F-3 F-3 F-3 -- D-3
+-- E-3 -- F#3 F#3 F#3 A-3 A-3 A-3 A#3 A#3 F-3 E-3 D#3 F-3 F-3
+F-3 F-3 F-3 -- D-3 C#3 D#3 -- F-3 F-3 F-3 F-3 F-3 E-3 A#3 A#3
+""")
+
+        let extractedHarmony = tokens("""
+A#4 A#4 -- -- A#4 A#4 -- -- A#4 A#4 -- -- A#4 A#4 -- --
+A#4 A#4 -- -- A#4 D#4 -- -- D#4 D#4 -- -- D#4 D#4 -- --
+D#4 D#4 -- -- D#4 D#4 -- -- D#4 D#4 -- -- A#4 A#4 -- --
+A#4 A#4 -- -- F#4 F#4 -- -- F#4 F#4 -- -- F#4 F#4 -- --
+F-4 A-4 -- -- A-4 C-5 -- -- F-4 F-4 -- -- C#4 F-4 -- --
+A-4 A-4 -- -- A-4 A#4 -- -- A#4 A#4 -- -- A#4 A#4 -- --
+A#4 A#4 -- -- A#4 A#4 -- -- A#4 A#4 -- -- D#4 D#4 -- --
+D#4 D#4 -- -- D#4 D#4 -- -- D#4 D#4 -- -- D#4 D#4 -- --
+A#4 A#4 -- -- F#4 F#4 -- -- A#4 F#4 -- -- F#4 F#4 -- --
+F#4 F#4 -- -- F#4 E-4 -- -- F-4 F-4 -- -- C-5 C-5 -- --
+F-4 E-4 -- -- E-4 A-4 -- -- A-4 A-4 -- -- F-4 F-4 -- --
+A#4 A#4 -- -- A#4 A#4 -- -- A#4 A#4 -- -- A#4 A#4 -- --
+A-4 A-4 -- -- A-4 A-4 -- -- A-4 A-4 -- -- A-4 A-4 -- --
+A-4 A-4 -- -- G#4 G#4 -- -- G#4 G#4 -- -- C-5 C-5 -- --
+C-5 C-5 -- -- G#4 G#4 -- -- C-5 C-5 -- -- C-5 C-5 -- --
+C-5 C-5 -- -- C-5 C-5 -- -- C-5 -- -- -- F-4 A-4 -- --
+F-4 A#4 -- -- A#4 A#4 -- -- A#4 A#4 -- -- F-4 F-4 -- --
+A#4 A#4 -- -- A-4 A-4 -- -- A-4 A-4 -- -- A-4 A-4 -- --
+-- A-4 -- -- A-4 A-4 -- -- A-4 A-4 -- -- G#4 G#4 -- --
+G#4 C-5 -- -- C-5 C-5 -- -- C-5 G#4 -- -- G#4 C-5 -- --
+F-4 F-4 -- -- F-4 F-4 -- -- F-4 F-4 -- -- F-4 D#4 -- --
+C-5 C-5 -- -- -- A#4 -- -- A#4 A#4 -- -- A#4 A#4 -- --
+-- -- -- -- -- -- -- -- -- -- -- -- F-4 F-4 -- --
+F#4 E-4 -- -- C#4 -- -- -- C#4 F#4 -- -- F-4 F-4 -- --
+A#4 E-4 -- -- F-4 F-4 -- -- F-4 -- -- -- F-4 F-4 -- --
+F#4 A-4 -- -- A#4 A#4 -- -- D#4 F#4 -- -- F-4 F-4 -- --
+C#4 -- -- -- F-4 F-4 -- -- F-4 A#4 -- -- F-4 D#4 -- --
+F-4 F-4 -- -- C#4 -- -- -- C#4 F#4 -- -- A-4 A-4 -- --
+A#4 E-4 -- -- F-4 F-4 -- -- F-4 C#4 -- -- D#4 C#4 -- --
+F#4 E-4 -- -- A#4 A#4 -- -- E-4 F#4 -- -- F-4 F-4 -- --
+-- E-4 -- -- F#4 F#4 -- -- A-4 A#4 -- -- E-4 D#4 -- --
+F-4 F-4 -- -- D-4 C#4 -- -- F-4 F-4 -- -- F-4 E-4 -- --
+""")
+
+        let songSteps = extractedLead.count
 
         patterns["pulse1"] = sequence(extractedLead, velocity: 0.94)
+        patterns["pulse2"] = sequence(extractedHarmony, velocity: 0.62)
+        patterns["triangle"] = sequence(extractedBass, velocity: 0.9)
 
-        patterns["pulse2"] = [
-            note("E-4", step: 0, length: 1, velocity: 0.58),
-            note("F-4", step: 1, length: 1, velocity: 0.64),
-            note("C#4", step: 2, length: 1, velocity: 0.56),
-            note("F#4", step: 3, length: 3, velocity: 0.68),
-            note("G#4", step: 6, length: 1, velocity: 0.56),
-            note("A#4", step: 8, length: 3, velocity: 0.7),
-            note("F-4", step: 11, length: 1, velocity: 0.58),
-            note("D#4", step: 12, length: 1, velocity: 0.56),
-            note("D-4", step: 13, length: 1, velocity: 0.54),
-            note("F#4", step: 14, length: 2, velocity: 0.68),
-            note("F-4", step: 16, length: 3, velocity: 0.72),
-            note("C#4", step: 19, length: 2, velocity: 0.58),
-            note("D#4", step: 21, length: 1, velocity: 0.56),
-            note("D-4", step: 22, length: 1, velocity: 0.54),
-            note("C#4", step: 23, length: 1, velocity: 0.56),
-            note("D#4", step: 24, length: 1, velocity: 0.58),
-            note("F#4", step: 25, length: 2, velocity: 0.7),
-            note("F-4", step: 27, length: 2, velocity: 0.66),
-            note("D#4", step: 29, length: 1, velocity: 0.56),
-            note("A#4", step: 30, length: 2, velocity: 0.74)
-        ]
-
-        patterns["triangle"] = sequence(extractedBass, velocity: 0.92)
-
-        patterns["noise"] = [
-            note("C-5", step: 1, velocity: 0.46),
-            note("G-5", step: 3, velocity: 0.34),
-            note("C-5", step: 5, velocity: 0.44),
-            note("G-5", step: 7, velocity: 0.42),
-            note("C-5", step: 9, velocity: 0.52),
-            note("G-5", step: 11, velocity: 0.36),
-            note("C-5", step: 13, velocity: 0.5),
-            note("G-5", step: 15, velocity: 0.48),
-            note("C-5", step: 17, velocity: 0.5),
-            note("G-5", step: 19, velocity: 0.34),
-            note("C-5", step: 21, velocity: 0.48),
-            note("G-5", step: 23, velocity: 0.4),
-            note("C-5", step: 25, velocity: 0.52),
-            note("G-5", step: 27, velocity: 0.36),
-            note("C-5", step: 29, velocity: 0.58),
-            note("G-5", step: 31, velocity: 0.5)
-        ]
-
-        patterns["saw"] = [
-            note("G#5", step: 0, velocity: 0.34),
-            note("F#5", step: 4, length: 2, velocity: 0.38),
-            note("A#5", step: 8, length: 2, velocity: 0.36),
-            note("G-5", step: 12, velocity: 0.42),
-            note("C-6", step: 16, velocity: 0.4),
-            note("G#5", step: 19, length: 2, velocity: 0.34),
-            note("F#5", step: 25, length: 2, velocity: 0.38),
-            note("F-5", step: 31, velocity: 0.48)
-        ]
-
-        patterns["kick"] = [0, 3, 4, 8, 10, 12, 16, 19, 20, 24, 27, 28, 30].map { step in
-            note("C-4", step: step, velocity: step.isMultiple(of: 8) ? 1.0 : 0.82)
+        patterns["noise"] = stride(from: 1, to: songSteps, by: 4).map { step in
+            note(step.isMultiple(of: 8) ? "C-5" : "G-5", step: step, velocity: step.isMultiple(of: 16) ? 0.58 : 0.38)
         }
 
-        patterns["snare"] = [7, 15, 23, 31].map { step in
-            note("C-5", step: step, velocity: step == 31 ? 0.98 : 0.86)
+        patterns["saw"] = extractedLead.enumerated().compactMap { step, name -> SequencerNote? in
+            guard let name,
+                  step.isMultiple(of: 32) || step % 16 == 12 || step % 16 == 15 else {
+                return nil
+            }
+            return note(name, step: step, velocity: step.isMultiple(of: 32) ? 0.44 : 0.34)
         }
 
-        patterns["hat"] = stride(from: 0, to: 32, by: 2).map { step in
+        let kickPattern = [0, 3, 4, 8, 10, 12]
+        patterns["kick"] = (0..<songSteps).compactMap { step in
+            guard kickPattern.contains(step % 16) else { return nil }
+            return note("C-4", step: step, velocity: step.isMultiple(of: 16) ? 1.0 : 0.82)
+        }
+
+        patterns["snare"] = (0..<songSteps).compactMap { step in
+            guard step % 16 == 7 || step % 16 == 15 else { return nil }
+            return note("C-5", step: step, velocity: step % 16 == 15 ? 0.94 : 0.84)
+        }
+
+        patterns["hat"] = stride(from: 0, to: songSteps, by: 2).map { step in
             note("G-5", step: step, velocity: step.isMultiple(of: 8) ? 0.66 : 0.42)
         }
 
         return ChipTuneProject(
             tempo: 156,
-            steps: 32,
+            steps: songSteps,
             rowNotes: rows,
             channels: ChipTuneChannel.defaults,
             patterns: patterns

@@ -386,8 +386,11 @@ private struct NoteBlock: View {
     let resizeAction: (CGFloat) -> Void
     let resizeEndAction: () -> Void
 
+    @State private var isHoldResizing = false
+
     var body: some View {
         let width = max(16, CGFloat(note.length) * stepWidth - 3)
+        let isResizing = isArmed || isHoldResizing
 
         HStack(spacing: 2) {
             Text(note.length > 2 ? "\(displayNote.displayName) \(note.length)" : displayNote.displayName)
@@ -405,12 +408,12 @@ private struct NoteBlock: View {
                 .padding(.trailing, 4)
         }
         .frame(width: width, height: rowHeight - 4)
-        .background(isArmed ? Color.chipGold : Color.chipMint, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .background(isResizing ? Color.chipGold : Color.chipMint, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .stroke(Color.white.opacity(0.45), lineWidth: 1)
         }
-        .shadow(color: (isArmed ? Color.chipGold : Color.chipMint).opacity(0.22), radius: 5, x: 0, y: 3)
+        .shadow(color: (isResizing ? Color.chipGold : Color.chipMint).opacity(0.22), radius: 5, x: 0, y: 3)
         .contentShape(Rectangle())
         .onTapGesture {
             if editMode == .erase {
@@ -433,6 +436,35 @@ private struct NoteBlock: View {
                     resizeEndAction()
                 }
         )
+        .simultaneousGesture(holdResizeGesture)
+    }
+
+    private var holdResizeGesture: some Gesture {
+        LongPressGesture(minimumDuration: 0.28, maximumDistance: 14)
+            .sequenced(before: DragGesture(minimumDistance: 0))
+            .onChanged { value in
+                switch value {
+                case .first(true):
+                    beginHoldResize()
+                case .second(true, let drag):
+                    beginHoldResize()
+                    if let drag {
+                        resizeAction(drag.translation.width)
+                    }
+                default:
+                    break
+                }
+            }
+            .onEnded { _ in
+                isHoldResizing = false
+                resizeEndAction()
+            }
+    }
+
+    private func beginHoldResize() {
+        guard isHoldResizing == false else { return }
+        isHoldResizing = true
+        armResizeAction()
     }
 }
 
