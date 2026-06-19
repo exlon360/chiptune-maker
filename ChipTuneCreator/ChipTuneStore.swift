@@ -15,6 +15,7 @@ final class ChipTuneStore: ObservableObject {
     @Published var playheadStep = 0
     @Published var remoteURLString: String
     @Published var statusText = "Ready"
+    @Published var selectedNoteID: UUID?
 
     private let projectDefaultsKey = "ChipTuneCreator.project"
     private let remoteURLDefaultsKey = "ChipTuneCreator.remoteURL"
@@ -47,6 +48,11 @@ final class ChipTuneStore: ObservableObject {
         notes(for: selectedChannelID)
     }
 
+    var selectedNote: SequencerNote? {
+        guard let selectedNoteID else { return nil }
+        return project.patterns[selectedChannelID]?.first { $0.id == selectedNoteID }
+    }
+
     var stepDuration: TimeInterval {
         60.0 / max(project.tempo, 20.0) / 4.0
     }
@@ -61,6 +67,9 @@ final class ChipTuneStore: ObservableObject {
     func selectChannel(_ id: String) {
         guard project.channels.contains(where: { $0.id == id }) else { return }
         selectedChannelID = id
+        if selectedNote == nil {
+            selectedNoteID = nil
+        }
     }
 
     func setTempo(_ tempo: Double) {
@@ -141,6 +150,7 @@ final class ChipTuneStore: ObservableObject {
         let newNote = SequencerNote(row: row, startStep: step, length: length)
         channelNotes.append(newNote)
         project.patterns[selectedChannelID] = channelNotes
+        selectedNoteID = newNote.id
         audio.preload(
             note: project.rowNotes[row],
             channel: selectedChannel,
@@ -152,10 +162,14 @@ final class ChipTuneStore: ObservableObject {
 
     func deleteNote(row: Int, step: Int) {
         var channelNotes = project.patterns[selectedChannelID] ?? []
+        let deletedSelectedNote = channelNotes.contains { $0.id == selectedNoteID && $0.row == row && $0.covers(step: step) }
         let originalCount = channelNotes.count
         channelNotes.removeAll { $0.row == row && $0.covers(step: step) }
         guard channelNotes.count != originalCount else { return }
         project.patterns[selectedChannelID] = channelNotes
+        if deletedSelectedNote {
+            selectedNoteID = nil
+        }
         saveProject()
     }
 
@@ -163,7 +177,16 @@ final class ChipTuneStore: ObservableObject {
         var channelNotes = project.patterns[selectedChannelID] ?? []
         channelNotes.removeAll { $0.id == noteID }
         project.patterns[selectedChannelID] = channelNotes
+        if selectedNoteID == noteID {
+            selectedNoteID = nil
+        }
         saveProject()
+    }
+
+    func select(noteID: UUID) {
+        guard project.patterns[selectedChannelID]?.contains(where: { $0.id == noteID }) == true else { return }
+        selectedNoteID = noteID
+        statusText = "Note selected"
     }
 
     func resize(noteID: UUID, length: Int) {
@@ -185,10 +208,42 @@ final class ChipTuneStore: ObservableObject {
         note.length = clamped
         channelNotes[index] = note
         project.patterns[selectedChannelID] = channelNotes
+        selectedNoteID = noteID
     }
 
     func finishResize() {
         saveProject()
+    }
+
+    func updateSelectedNoteLength(_ length: Int) {
+        guard let selectedNoteID else { return }
+        resize(noteID: selectedNoteID, length: length)
+        finishResize()
+    }
+
+    func updateSelectedNoteVelocity(_ velocity: Double) {
+        guard let selectedNoteID,
+              var channelNotes = project.patterns[selectedChannelID],
+              let index = channelNotes.firstIndex(where: { $0.id == selectedNoteID }) else {
+            return
+        }
+
+        var note = channelNotes[index]
+        note.velocity = min(max(velocity, 0.05), 1.0)
+        channelNotes[index] = note
+        project.patterns[selectedChannelID] = channelNotes
+        statusText = "Note \(Int(note.velocity * 100))"
+        saveProject()
+    }
+
+    func previewSelectedNote() {
+        guard let selectedNote, project.rowNotes.indices.contains(selectedNote.row) else { return }
+        audio.play(
+            note: project.rowNotes[selectedNote.row],
+            channel: selectedChannel,
+            duration: stepDuration * Double(selectedNote.length) * 0.96,
+            velocity: selectedNote.velocity
+        )
     }
 
     func changeRowNote(row: Int, to note: MusicNote) {
@@ -247,6 +302,7 @@ final class ChipTuneStore: ObservableObject {
 
     func clearSelectedChannel() {
         project.patterns[selectedChannelID] = []
+        selectedNoteID = nil
         saveProject()
     }
 
@@ -254,6 +310,7 @@ final class ChipTuneStore: ObservableObject {
         stop()
         project = ChipTuneProject.starter()
         selectedChannelID = project.channels.first?.id ?? selectedChannelID
+        selectedNoteID = nil
         audio.configure(channels: project.channels)
         warmCurrentSounds()
         saveProject()
@@ -335,6 +392,7 @@ final class ChipTuneStore: ObservableObject {
                     sequencerNote(from: remoteNote)
                 }
             }
+            selectedNoteID = nil
         }
 
         audio.configure(channels: project.channels)

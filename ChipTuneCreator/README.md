@@ -10,6 +10,7 @@ ChipTune Maker is a SwiftUI iOS chiptune sequencer with a tracker-style editor a
 - Tap or drag to draw notes.
 - Erase mode for removing notes.
 - Hold/drag a note horizontally to extend or shorten it, or double-tap a note to arm resizing first.
+- Tap a note to select it, then adjust that note's own volume and length in the mixer.
 - Growable long-song grid with +16/+64/+256, double-length, trim, and automatic edge extension while drawing or resizing.
 - Tempo, channel waveform, and volume controls.
 - Local project persistence with `UserDefaults`.

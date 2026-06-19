@@ -226,13 +226,19 @@ private struct SequencerGridView: View {
                                     stepWidth: stepWidth,
                                     rowHeight: rowHeight,
                                     isArmed: armedResizeNoteID == note.id,
+                                    isSelected: store.selectedNoteID == note.id,
                                     editMode: store.editMode,
                                     previewAction: { store.preview(row: note.row, velocity: note.velocity) },
                                     deleteAction: { store.delete(noteID: note.id) },
-                                    armResizeAction: { armedResizeNoteID = note.id },
+                                    selectAction: { store.select(noteID: note.id) },
+                                    armResizeAction: {
+                                        store.select(noteID: note.id)
+                                        armedResizeNoteID = note.id
+                                    },
                                     resizeStartAction: {
                                         isResizingNote = true
                                         armedResizeNoteID = note.id
+                                        store.select(noteID: note.id)
                                     },
                                     resizeAction: { translation in
                                         resize(note: note, translation: translation)
@@ -386,9 +392,11 @@ private struct NoteBlock: View {
     let stepWidth: CGFloat
     let rowHeight: CGFloat
     let isArmed: Bool
+    let isSelected: Bool
     let editMode: ChipTuneEditMode
     let previewAction: () -> Void
     let deleteAction: () -> Void
+    let selectAction: () -> Void
     let armResizeAction: () -> Void
     let resizeStartAction: () -> Void
     let resizeAction: (CGFloat) -> Void
@@ -400,6 +408,7 @@ private struct NoteBlock: View {
     var body: some View {
         let width = max(16, CGFloat(note.length) * stepWidth - 3)
         let isResizing = isArmed || isHoldResizing || didDragResize
+        let noteFill = isResizing ? Color.chipGold : (isSelected ? Color.chipSky : Color.chipMint)
 
         HStack(spacing: 2) {
             Text(note.length > 2 ? "\(displayNote.displayName) \(note.length)" : displayNote.displayName)
@@ -417,17 +426,18 @@ private struct NoteBlock: View {
                 .padding(.trailing, 4)
         }
         .frame(width: width, height: rowHeight - 4)
-        .background(isResizing ? Color.chipGold : Color.chipMint, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .background(noteFill, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .stroke(Color.white.opacity(0.45), lineWidth: 1)
+                .stroke(isSelected || isResizing ? Color.white.opacity(0.76) : Color.white.opacity(0.45), lineWidth: isSelected || isResizing ? 2 : 1)
         }
-        .shadow(color: (isResizing ? Color.chipGold : Color.chipMint).opacity(0.22), radius: 5, x: 0, y: 3)
+        .shadow(color: noteFill.opacity(0.22), radius: 5, x: 0, y: 3)
         .contentShape(Rectangle())
         .onTapGesture {
             if editMode == .erase {
                 deleteAction()
             } else {
+                selectAction()
                 previewAction()
             }
         }
@@ -510,6 +520,8 @@ private struct MixerPanel: View {
         VStack(spacing: 8) {
             waveRow
             tempoRow
+            selectedNoteRow
+            selectedNoteVolumeSlider
             volumeSlider
         }
     }
@@ -556,6 +568,63 @@ private struct MixerPanel: View {
             .tint(Color.chipSky)
     }
 
+    @ViewBuilder
+    private var selectedNoteRow: some View {
+        if let note = store.selectedNote {
+            HStack(spacing: 10) {
+                Label(selectedNoteTitle(note), systemImage: "music.note")
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(Color.chipMint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Stepper(value: selectedNoteLengthBinding, in: 1...max(store.project.steps, 1)) {
+                    Label("\(note.length)", systemImage: "arrow.left.and.right")
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(Color.chipGold)
+                        .frame(width: 58)
+                }
+                .frame(maxWidth: 142)
+
+                Button {
+                    store.previewSelectedNote()
+                } label: {
+                    Image(systemName: "speaker.wave.2.fill")
+                        .frame(width: 34, height: 32)
+                }
+                .buttonStyle(ChipIconButtonStyle(tint: .chipMint))
+            }
+        } else {
+            HStack(spacing: 10) {
+                Label("Note --", systemImage: "music.note")
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(Color.white.opacity(0.42))
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var selectedNoteVolumeSlider: some View {
+        if let note = store.selectedNote {
+            HStack(spacing: 10) {
+                Label("\(Int(note.velocity * 100))", systemImage: "slider.horizontal.3")
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(Color.chipMint)
+                    .frame(width: 64, alignment: .leading)
+
+                Slider(value: selectedNoteVelocityBinding, in: 0.05...1, step: 0.01)
+                    .tint(Color.chipMint)
+            }
+        }
+    }
+
+    private func selectedNoteTitle(_ note: SequencerNote) -> String {
+        let noteName = store.project.rowNotes.indices.contains(note.row) ? store.project.rowNotes[note.row].displayName : "--"
+        return "\(noteName) @ \(note.startStep + 1)"
+    }
+
     private var waveformBinding: Binding<ChipWaveform> {
         Binding<ChipWaveform>(
             get: { store.selectedChannel.waveform },
@@ -574,6 +643,20 @@ private struct MixerPanel: View {
         Binding<Double>(
             get: { store.selectedChannel.volume },
             set: { store.updateSelectedChannel(volume: $0) }
+        )
+    }
+
+    private var selectedNoteVelocityBinding: Binding<Double> {
+        Binding<Double>(
+            get: { store.selectedNote?.velocity ?? 1.0 },
+            set: { store.updateSelectedNoteVelocity($0) }
+        )
+    }
+
+    private var selectedNoteLengthBinding: Binding<Int> {
+        Binding<Int>(
+            get: { store.selectedNote?.length ?? 1 },
+            set: { store.updateSelectedNoteLength($0) }
         )
     }
 }
