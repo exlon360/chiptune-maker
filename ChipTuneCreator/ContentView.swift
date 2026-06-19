@@ -1263,6 +1263,22 @@ private extension ChipWaveform {
             return "asterisk"
         case .tom:
             return "record.circle"
+        case .suffLead:
+            return "bolt.fill"
+        case .suffEcho:
+            return "dot.radiowaves.left.and.right"
+        case .suffBass:
+            return "speaker.wave.2.fill"
+        case .suffRhythm:
+            return "waveform.path.ecg.rectangle"
+        case .suffNoise:
+            return "sparkles"
+        case .suffKick:
+            return "circle.circle.fill"
+        case .suffSnare:
+            return "smallcircle.filled.circle.fill"
+        case .suffHat:
+            return "asterisk"
         }
     }
 
@@ -1294,6 +1310,22 @@ private extension ChipWaveform {
             return .chipSky
         case .tom:
             return .chipViolet
+        case .suffLead:
+            return .chipGold
+        case .suffEcho:
+            return .chipMint
+        case .suffBass:
+            return .chipViolet
+        case .suffRhythm:
+            return .chipSky
+        case .suffNoise:
+            return .chipRose
+        case .suffKick:
+            return .chipOrange
+        case .suffSnare:
+            return .chipRose
+        case .suffHat:
+            return .chipSky
         }
     }
 }

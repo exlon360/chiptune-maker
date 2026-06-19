@@ -16,14 +16,14 @@ import soundfile as sf
 
 NOTE_NAMES = ["C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"]
 CHANNELS = [
-    {"id": "pulse1", "title": "Pulse 1", "waveform": "pulse50", "volume": 0.46},
-    {"id": "pulse2", "title": "Pulse 2", "waveform": "pulse25", "volume": 0.38},
-    {"id": "triangle", "title": "Triangle", "waveform": "triangle", "volume": 0.42},
-    {"id": "saw", "title": "Saw Lead", "waveform": "saw", "volume": 0.32},
-    {"id": "noise", "title": "Noise", "waveform": "noise", "volume": 0.24},
-    {"id": "kick", "title": "Kick", "waveform": "kick", "volume": 0.62},
-    {"id": "snare", "title": "Snare", "waveform": "snare", "volume": 0.42},
-    {"id": "hat", "title": "Hat", "waveform": "hat", "volume": 0.28},
+    {"id": "pulse1", "title": "Suff Lead", "waveform": "suffLead", "volume": 0.48},
+    {"id": "pulse2", "title": "Suff Echo", "waveform": "suffEcho", "volume": 0.38},
+    {"id": "triangle", "title": "Suff Bass", "waveform": "suffBass", "volume": 0.46},
+    {"id": "saw", "title": "Suff Rhythm", "waveform": "suffRhythm", "volume": 0.34},
+    {"id": "noise", "title": "Suff Noise FX", "waveform": "suffNoise", "volume": 0.26},
+    {"id": "kick", "title": "Suff Kick", "waveform": "suffKick", "volume": 0.66},
+    {"id": "snare", "title": "Suff Snare", "waveform": "suffSnare", "volume": 0.48},
+    {"id": "hat", "title": "Suff Hat", "waveform": "suffHat", "volume": 0.34},
 ]
 
 

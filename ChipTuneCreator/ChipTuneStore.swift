@@ -49,7 +49,7 @@ final class ChipTuneStore: ObservableObject {
             legacyKey: projectDefaultsKey
         ) ?? Self.defaultProject(for: initialPage)
 
-        let normalizedProject = Self.normalized(project: loadedProject)
+        let normalizedProject = Self.normalized(project: loadedProject, pageIndex: initialPage)
         project = normalizedProject
         selectedChannelID = normalizedProject.channels.first?.id ?? "pulse1"
         remoteURLString = UserDefaults.standard.string(forKey: remoteURLDefaultsKey) ?? Self.defaultRemoteURL
@@ -183,7 +183,7 @@ final class ChipTuneStore: ObservableObject {
             pagePrefix: projectPageDefaultsPrefix,
             legacyKey: projectDefaultsKey
         ) ?? Self.defaultProject(for: nextIndex)
-        let normalizedProject = Self.normalized(project: loadedProject)
+        let normalizedProject = Self.normalized(project: loadedProject, pageIndex: nextIndex)
 
         project = normalizedProject
         selectedChannelID = normalizedProject.channels.first?.id ?? "pulse1"
@@ -794,11 +794,18 @@ final class ChipTuneStore: ObservableObject {
         return (pageIndex % pageCount + pageCount) % pageCount
     }
 
-    private static func normalized(project: ChipTuneProject) -> ChipTuneProject {
+    private static func normalized(project: ChipTuneProject, pageIndex: Int) -> ChipTuneProject {
         var normalized = project
         for channel in ChipTuneChannel.defaults where normalized.channels.contains(where: { $0.id == channel.id }) == false {
             normalized.channels.append(channel)
             normalized.patterns[channel.id] = normalized.patterns[channel.id] ?? []
+        }
+        if clampedPageIndex(pageIndex) == 2 {
+            for songChannel in ChipTuneChannel.suffocatedSongDefaults {
+                guard let index = normalized.channels.firstIndex(where: { $0.id == songChannel.id }) else { continue }
+                normalized.channels[index].title = songChannel.title
+                normalized.channels[index].waveform = songChannel.waveform
+            }
         }
         return normalized
     }

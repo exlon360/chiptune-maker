@@ -42,51 +42,51 @@
   "channels": [
     {
       "id": "pulse1",
-      "title": "Pulse 1",
-      "waveform": "pulse50",
-      "volume": 0.46
+      "title": "Suff Lead",
+      "waveform": "suffLead",
+      "volume": 0.48
     },
     {
       "id": "pulse2",
-      "title": "Pulse 2",
-      "waveform": "pulse25",
+      "title": "Suff Echo",
+      "waveform": "suffEcho",
       "volume": 0.38
     },
     {
       "id": "triangle",
-      "title": "Triangle",
-      "waveform": "triangle",
-      "volume": 0.42
+      "title": "Suff Bass",
+      "waveform": "suffBass",
+      "volume": 0.46
     },
     {
       "id": "saw",
-      "title": "Saw Lead",
-      "waveform": "saw",
-      "volume": 0.32
+      "title": "Suff Rhythm",
+      "waveform": "suffRhythm",
+      "volume": 0.34
     },
     {
       "id": "noise",
-      "title": "Noise",
-      "waveform": "noise",
-      "volume": 0.24
+      "title": "Suff Noise FX",
+      "waveform": "suffNoise",
+      "volume": 0.26
     },
     {
       "id": "kick",
-      "title": "Kick",
-      "waveform": "kick",
-      "volume": 0.62
+      "title": "Suff Kick",
+      "waveform": "suffKick",
+      "volume": 0.66
     },
     {
       "id": "snare",
-      "title": "Snare",
-      "waveform": "snare",
-      "volume": 0.42
+      "title": "Suff Snare",
+      "waveform": "suffSnare",
+      "volume": 0.48
     },
     {
       "id": "hat",
-      "title": "Hat",
-      "waveform": "hat",
-      "volume": 0.28
+      "title": "Suff Hat",
+      "waveform": "suffHat",
+      "volume": 0.34
     }
   ],
   "patterns": {
@@ -24866,6 +24866,7 @@
   "metadata": {
     "source": "Suffocated by Hatred audio transcription",
     "stepResolution": "1/16",
-    "analysis": "FFT harmonic pitch scoring per sequencer step plus energy-band percussion hits"
+    "analysis": "FFT harmonic pitch scoring per sequencer step plus energy-band percussion hits",
+    "instruments": "Suffocated role set: lead, echo, bass, rhythm, noise FX, kick, snare, and hat"
   }
 }

@@ -137,6 +137,14 @@ enum ChipWaveform: String, Codable, CaseIterable, Hashable, Identifiable {
     case snare
     case hat
     case tom
+    case suffLead
+    case suffEcho
+    case suffBass
+    case suffRhythm
+    case suffNoise
+    case suffKick
+    case suffSnare
+    case suffHat
 
     var id: String { rawValue }
 
@@ -168,6 +176,22 @@ enum ChipWaveform: String, Codable, CaseIterable, Hashable, Identifiable {
             return "Hat"
         case .tom:
             return "Tom"
+        case .suffLead:
+            return "Suff Lead"
+        case .suffEcho:
+            return "Suff Echo"
+        case .suffBass:
+            return "Suff Bass"
+        case .suffRhythm:
+            return "Suff Rhythm"
+        case .suffNoise:
+            return "Suff Noise"
+        case .suffKick:
+            return "Suff Kick"
+        case .suffSnare:
+            return "Suff Snare"
+        case .suffHat:
+            return "Suff Hat"
         }
     }
 
@@ -181,16 +205,16 @@ enum ChipWaveform: String, Codable, CaseIterable, Hashable, Identifiable {
             return 0.5
         case .pulse75:
             return 0.75
-        case .triangle, .saw, .sine, .pluck, .noise, .kick, .snare, .hat, .tom:
+        case .triangle, .saw, .sine, .pluck, .noise, .kick, .snare, .hat, .tom, .suffLead, .suffEcho, .suffBass, .suffRhythm, .suffNoise, .suffKick, .suffSnare, .suffHat:
             return 0.5
         }
     }
 
     var isPercussion: Bool {
         switch self {
-        case .kick, .snare, .hat, .tom:
+        case .kick, .snare, .hat, .tom, .suffKick, .suffSnare, .suffHat:
             return true
-        case .pulse12, .pulse25, .pulse50, .pulse75, .triangle, .saw, .sine, .pluck, .noise:
+        case .pulse12, .pulse25, .pulse50, .pulse75, .triangle, .saw, .sine, .pluck, .noise, .suffLead, .suffEcho, .suffBass, .suffRhythm, .suffNoise:
             return false
         }
     }
@@ -202,20 +226,27 @@ struct ChipTuneChannel: Codable, Identifiable, Equatable {
     var waveform: ChipWaveform
     var volume: Double
 
-    static let defaults = [
-        ChipTuneChannel(id: "pulse1", title: "Pulse 1", waveform: .pulse50, volume: 0.46),
-        ChipTuneChannel(id: "pulse2", title: "Pulse 2", waveform: .pulse25, volume: 0.38),
-        ChipTuneChannel(id: "triangle", title: "Triangle", waveform: .triangle, volume: 0.42),
-        ChipTuneChannel(id: "saw", title: "Saw Lead", waveform: .saw, volume: 0.32),
+    static let suffocatedSongDefaults = [
+        ChipTuneChannel(id: "pulse1", title: "Suff Lead", waveform: .suffLead, volume: 0.48),
+        ChipTuneChannel(id: "pulse2", title: "Suff Echo", waveform: .suffEcho, volume: 0.38),
+        ChipTuneChannel(id: "triangle", title: "Suff Bass", waveform: .suffBass, volume: 0.46),
+        ChipTuneChannel(id: "saw", title: "Suff Rhythm", waveform: .suffRhythm, volume: 0.34),
+        ChipTuneChannel(id: "noise", title: "Suff Noise FX", waveform: .suffNoise, volume: 0.26),
+        ChipTuneChannel(id: "kick", title: "Suff Kick", waveform: .suffKick, volume: 0.66),
+        ChipTuneChannel(id: "snare", title: "Suff Snare", waveform: .suffSnare, volume: 0.48),
+        ChipTuneChannel(id: "hat", title: "Suff Hat", waveform: .suffHat, volume: 0.34)
+    ]
+
+    static let extraDefaults = [
         ChipTuneChannel(id: "sinepad", title: "Sine Pad", waveform: .sine, volume: 0.3),
         ChipTuneChannel(id: "pluck", title: "Pluck", waveform: .pluck, volume: 0.34),
         ChipTuneChannel(id: "pulse75", title: "Pulse 75", waveform: .pulse75, volume: 0.32),
-        ChipTuneChannel(id: "noise", title: "Noise", waveform: .noise, volume: 0.24),
-        ChipTuneChannel(id: "kick", title: "Kick", waveform: .kick, volume: 0.62),
-        ChipTuneChannel(id: "snare", title: "Snare", waveform: .snare, volume: 0.42),
-        ChipTuneChannel(id: "hat", title: "Hat", waveform: .hat, volume: 0.28),
         ChipTuneChannel(id: "tom", title: "Tom", waveform: .tom, volume: 0.38)
     ]
+
+    static var defaults: [ChipTuneChannel] {
+        suffocatedSongDefaults + extraDefaults
+    }
 }
 
 struct SequencerNote: Codable, Identifiable, Equatable {

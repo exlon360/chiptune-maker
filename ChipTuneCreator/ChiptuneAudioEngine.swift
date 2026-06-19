@@ -171,6 +171,30 @@ final class ChiptuneAudioEngine {
         switch waveform {
         case .pulse12, .pulse25, .pulse50, .pulse75:
             return phase < waveform.dutyCycle ? 1.0 : -1.0
+        case .suffLead:
+            let vibrato = sin(2.0 * Double.pi * 5.8 * time) * 0.004
+            let leadPhase = (time * frequency * (1.0 + vibrato)).truncatingRemainder(dividingBy: 1.0)
+            let pulse = leadPhase < 0.18 ? 1.0 : -1.0
+            let saw = 2.0 * leadPhase - 1.0
+            let octave = (time * frequency * 2.0).truncatingRemainder(dividingBy: 1.0) < 0.5 ? 1.0 : -1.0
+            return tanh((pulse * 0.74 + saw * 0.36 + octave * 0.16) * 1.28)
+        case .suffEcho:
+            let pwm = 0.24 + sin(2.0 * Double.pi * 3.1 * time) * 0.07
+            let brightPulse = phase < pwm ? 1.0 : -1.0
+            let subPhase = (time * frequency * 0.5).truncatingRemainder(dividingBy: 1.0)
+            let sub = subPhase < 0.5 ? 1.0 : -1.0
+            return brightPulse * 0.82 + sub * 0.18
+        case .suffBass:
+            let subPhase = (time * max(30.0, frequency * 0.5)).truncatingRemainder(dividingBy: 1.0)
+            let tri = 1.0 - 4.0 * abs(subPhase - 0.5)
+            let bite = phase < 0.5 ? 1.0 : -1.0
+            return tanh((tri * 1.05 + bite * 0.26) * 1.34)
+        case .suffRhythm:
+            let saw = 2.0 * phase - 1.0
+            let narrow = phase < 0.125 ? 1.0 : -1.0
+            let fifthPhase = (time * frequency * 1.5).truncatingRemainder(dividingBy: 1.0)
+            let fifth = fifthPhase < 0.5 ? 1.0 : -1.0
+            return tanh((saw * 0.72 + narrow * 0.42 + fifth * 0.14) * 1.55)
         case .triangle:
             return 1.0 - 4.0 * abs(phase - 0.5)
         case .saw:
@@ -183,6 +207,10 @@ final class ChiptuneAudioEngine {
             return pulse * 0.58 + saw * 0.42
         case .noise:
             return noiseSample(frame: frame, holdFrames: noiseHoldFrames, lfsr: &lfsr, noiseValue: &noiseValue)
+        case .suffNoise:
+            let noise = noiseSample(frame: frame, holdFrames: max(1, noiseHoldFrames / 2), lfsr: &lfsr, noiseValue: &noiseValue)
+            let shimmer = sin(2.0 * Double.pi * max(900.0, frequency * 4.0) * time)
+            return tanh(noise * 0.82 + shimmer * 0.24)
         case .kick:
             let progress = Double(frame) / Double(max(frameCount, 1))
             let startFrequency = max(90.0, min(180.0, frequency / 3.0))
@@ -205,6 +233,26 @@ final class ChiptuneAudioEngine {
             let tomFrequency = max(70.0, min(220.0, frequency / 2.0))
             let sweptFrequency = tomFrequency * (1.0 - progress * 0.28)
             return sin(2.0 * Double.pi * sweptFrequency * time)
+        case .suffKick:
+            let progress = Double(frame) / Double(max(frameCount, 1))
+            let sweptFrequency = 168.0 * exp(-progress * 7.2) + 38.0
+            let body = sin(2.0 * Double.pi * sweptFrequency * time)
+            let click = frame < Int(sampleRate * 0.009)
+                ? noiseSample(frame: frame, holdFrames: 1, lfsr: &lfsr, noiseValue: &noiseValue) * 0.42
+                : 0.0
+            return tanh(body * 1.42 + click)
+        case .suffSnare:
+            let progress = Double(frame) / Double(max(frameCount, 1))
+            let noise = noiseSample(frame: frame, holdFrames: 1, lfsr: &lfsr, noiseValue: &noiseValue)
+            let toneA = sin(2.0 * Double.pi * 185.0 * time)
+            let toneB = sin(2.0 * Double.pi * 302.0 * time)
+            let snap = frame < Int(sampleRate * 0.012) ? 0.24 : 0.0
+            return tanh(noise * (0.92 + snap) + toneA * 0.22 + toneB * 0.12 * (1.0 - progress))
+        case .suffHat:
+            let noise = noiseSample(frame: frame, holdFrames: 1, lfsr: &lfsr, noiseValue: &noiseValue)
+            let metallic = sin(2.0 * Double.pi * 6800.0 * time) * 0.25
+            let gated = noise * (frame.isMultiple(of: 2) ? 1.0 : -1.0)
+            return tanh(gated + metallic)
         }
     }
 
@@ -234,6 +282,12 @@ final class ChiptuneAudioEngine {
                 return pow(max(0.0, 1.0 - progress), 6.5)
             case .tom:
                 return pow(max(0.0, 1.0 - progress), 2.6)
+            case .suffKick:
+                return pow(max(0.0, 1.0 - progress), 3.1)
+            case .suffSnare:
+                return pow(max(0.0, 1.0 - progress), 4.0)
+            case .suffHat:
+                return pow(max(0.0, 1.0 - progress), 8.2)
             default:
                 return 1.0
             }
@@ -282,11 +336,11 @@ final class ChiptuneAudioEngine {
 private extension ChipWaveform {
     var bitDepth: Double {
         switch self {
-        case .sine, .kick, .tom:
+        case .sine, .kick, .tom, .suffBass, .suffKick:
             return 24.0
-        case .snare, .hat, .noise:
+        case .snare, .hat, .noise, .suffNoise, .suffSnare, .suffHat:
             return 10.0
-        case .pulse12, .pulse25, .pulse50, .pulse75, .triangle, .saw, .pluck:
+        case .pulse12, .pulse25, .pulse50, .pulse75, .triangle, .saw, .pluck, .suffLead, .suffEcho, .suffRhythm:
             return 14.0
         }
     }
