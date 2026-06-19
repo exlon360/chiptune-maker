@@ -4,10 +4,12 @@ import Foundation
 @MainActor
 final class ChipTuneStore: ObservableObject {
     static let defaultRemoteURL = "https://raw.githubusercontent.com/exlon360/chiptune-maker/main/config/chiptune-creator.json"
+    private static let pageTitles = ["Draft", "Suffocated"]
     private static let minimumSteps = 8
     private static let autoExtendPaddingSteps = 64
 
     @Published var project: ChipTuneProject
+    @Published var currentPageIndex = 0
     @Published var selectedChannelID: String
     @Published var editMode: ChipTuneEditMode = .draw
     @Published var selectedLength = 1
@@ -18,19 +20,22 @@ final class ChipTuneStore: ObservableObject {
     @Published var selectedNoteID: UUID?
 
     private let projectDefaultsKey = "ChipTuneCreator.project"
+    private let projectPageDefaultsPrefix = "ChipTuneCreator.project.page."
+    private let currentPageDefaultsKey = "ChipTuneCreator.currentPage"
     private let remoteURLDefaultsKey = "ChipTuneCreator.remoteURL"
     private let audio = ChiptuneAudioEngine()
     private var playbackTimer: Timer?
     private var nextPlaybackStep = 0
 
     init() {
-        let loadedProject: ChipTuneProject
-        if let data = UserDefaults.standard.data(forKey: projectDefaultsKey),
-           let decoded = try? JSONDecoder().decode(ChipTuneProject.self, from: data) {
-            loadedProject = decoded
-        } else {
-            loadedProject = ChipTuneProject.starter()
-        }
+        let savedPage = UserDefaults.standard.integer(forKey: currentPageDefaultsKey)
+        let initialPage = Self.clampedPageIndex(savedPage)
+        currentPageIndex = initialPage
+        let loadedProject = Self.storedProject(
+            pageIndex: initialPage,
+            pagePrefix: projectPageDefaultsPrefix,
+            legacyKey: projectDefaultsKey
+        ) ?? Self.defaultProject(for: initialPage)
 
         let normalizedProject = Self.normalized(project: loadedProject)
         project = normalizedProject
@@ -38,6 +43,14 @@ final class ChipTuneStore: ObservableObject {
         remoteURLString = UserDefaults.standard.string(forKey: remoteURLDefaultsKey) ?? Self.defaultRemoteURL
         audio.configure(channels: normalizedProject.channels)
         warmCurrentSounds()
+    }
+
+    var pageTitle: String {
+        Self.pageTitles[currentPageIndex]
+    }
+
+    var pageIndicator: String {
+        "\(currentPageIndex + 1)/\(Self.pageTitles.count)"
     }
 
     var selectedChannel: ChipTuneChannel {
@@ -70,6 +83,39 @@ final class ChipTuneStore: ObservableObject {
         if selectedNote == nil {
             selectedNoteID = nil
         }
+    }
+
+    func nextPage() {
+        switchPage(to: currentPageIndex + 1)
+    }
+
+    func previousPage() {
+        switchPage(to: currentPageIndex - 1)
+    }
+
+    private func switchPage(to pageIndex: Int) {
+        saveProject()
+        stop()
+
+        let nextIndex = Self.wrappedPageIndex(pageIndex)
+        currentPageIndex = nextIndex
+        UserDefaults.standard.set(nextIndex, forKey: currentPageDefaultsKey)
+
+        let loadedProject = Self.storedProject(
+            pageIndex: nextIndex,
+            pagePrefix: projectPageDefaultsPrefix,
+            legacyKey: projectDefaultsKey
+        ) ?? Self.defaultProject(for: nextIndex)
+        let normalizedProject = Self.normalized(project: loadedProject)
+
+        project = normalizedProject
+        selectedChannelID = normalizedProject.channels.first?.id ?? "pulse1"
+        selectedNoteID = nil
+        playheadStep = 0
+        nextPlaybackStep = 0
+        audio.configure(channels: normalizedProject.channels)
+        warmCurrentSounds()
+        statusText = pageTitle
     }
 
     func setTempo(_ tempo: Double) {
@@ -308,7 +354,7 @@ final class ChipTuneStore: ObservableObject {
 
     func resetSong() {
         stop()
-        project = ChipTuneProject.starter()
+        project = Self.defaultProject(for: currentPageIndex)
         selectedChannelID = project.channels.first?.id ?? selectedChannelID
         selectedNoteID = nil
         audio.configure(channels: project.channels)
@@ -339,7 +385,10 @@ final class ChipTuneStore: ObservableObject {
 
     func saveProject() {
         if let data = try? JSONEncoder().encode(project) {
-            UserDefaults.standard.set(data, forKey: projectDefaultsKey)
+            UserDefaults.standard.set(data, forKey: Self.projectKey(pageIndex: currentPageIndex, prefix: projectPageDefaultsPrefix))
+            if currentPageIndex == 0 {
+                UserDefaults.standard.set(data, forKey: projectDefaultsKey)
+            }
         }
     }
 
@@ -482,6 +531,44 @@ final class ChipTuneStore: ObservableObject {
 
     private func rangesOverlap(_ lhs: Range<Int>, _ rhs: Range<Int>) -> Bool {
         lhs.lowerBound < rhs.upperBound && rhs.lowerBound < lhs.upperBound
+    }
+
+    private static func defaultProject(for pageIndex: Int) -> ChipTuneProject {
+        switch clampedPageIndex(pageIndex) {
+        case 0:
+            return ChipTuneProject.blankDraft()
+        default:
+            return ChipTuneProject.starter()
+        }
+    }
+
+    private static func projectKey(pageIndex: Int, prefix: String) -> String {
+        "\(prefix)\(clampedPageIndex(pageIndex))"
+    }
+
+    private static func storedProject(pageIndex: Int, pagePrefix: String, legacyKey: String) -> ChipTuneProject? {
+        let pageKey = projectKey(pageIndex: pageIndex, prefix: pagePrefix)
+        if let data = UserDefaults.standard.data(forKey: pageKey),
+           let decoded = try? JSONDecoder().decode(ChipTuneProject.self, from: data) {
+            return decoded
+        }
+
+        guard clampedPageIndex(pageIndex) == 0,
+              let data = UserDefaults.standard.data(forKey: legacyKey),
+              let decoded = try? JSONDecoder().decode(ChipTuneProject.self, from: data) else {
+            return nil
+        }
+
+        return decoded
+    }
+
+    private static func clampedPageIndex(_ pageIndex: Int) -> Int {
+        min(max(pageIndex, 0), pageTitles.count - 1)
+    }
+
+    private static func wrappedPageIndex(_ pageIndex: Int) -> Int {
+        let pageCount = pageTitles.count
+        return (pageIndex % pageCount + pageCount) % pageCount
     }
 
     private static func normalized(project: ChipTuneProject) -> ChipTuneProject {

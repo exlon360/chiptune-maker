@@ -40,7 +40,7 @@ private struct HeaderView: View {
                     .foregroundStyle(.white)
                     .lineLimit(1)
 
-                Text("\(Int(store.project.tempo)) BPM / \(store.selectedChannel.title) / \(store.statusText)")
+                Text("\(store.pageTitle) \(store.pageIndicator) / \(Int(store.project.tempo)) BPM / \(store.selectedChannel.title) / \(store.statusText)")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.white.opacity(0.68))
                     .lineLimit(1)
@@ -48,6 +48,14 @@ private struct HeaderView: View {
             }
 
             Spacer(minLength: 0)
+
+            Button {
+                store.nextPage()
+            } label: {
+                Image(systemName: "arrow.forward.square.fill")
+                    .frame(width: 40, height: 40)
+            }
+            .buttonStyle(ChipIconButtonStyle(tint: .chipMint))
 
             Button(action: remoteAction) {
                 Image(systemName: "arrow.down.doc.fill")

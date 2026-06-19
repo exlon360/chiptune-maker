@@ -201,6 +201,19 @@ struct ChipTuneProject: Codable, Equatable {
     var channels: [ChipTuneChannel]
     var patterns: [String: [SequencerNote]]
 
+    static func blankDraft() -> ChipTuneProject {
+        let rows = MusicNote.defaultRows()
+        let patterns = Dictionary(uniqueKeysWithValues: ChipTuneChannel.defaults.map { ($0.id, [SequencerNote]()) })
+
+        return ChipTuneProject(
+            tempo: 156,
+            steps: 64,
+            rowNotes: rows,
+            channels: ChipTuneChannel.defaults,
+            patterns: patterns
+        )
+    }
+
     static func starter() -> ChipTuneProject {
         let rows = MusicNote.defaultRows()
         var patterns = Dictionary(uniqueKeysWithValues: ChipTuneChannel.defaults.map { ($0.id, [SequencerNote]()) })
