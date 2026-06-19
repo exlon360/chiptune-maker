@@ -5,14 +5,16 @@ ChipTune Maker is a SwiftUI iOS chiptune sequencer with a tracker-style editor a
 ## Features
 
 - Editable note rows on the left side of the grid.
-- Pulse 1, Pulse 2, Triangle, and Noise channels.
+- Pulse 1, Pulse 2, Triangle, Saw Lead, Noise, Kick, Snare, and Hat channels.
+- Extra chip sounds: 12.5/25/50/75 pulse, triangle, saw, sine, pluck, noise, kick, snare, hat, and tom.
 - Tap or drag to draw notes.
 - Erase mode for removing notes.
 - Double-tap a note to arm resizing, then drag its right edge to extend or shorten it.
 - Tempo, channel waveform, and volume controls.
 - Local project persistence with `UserDefaults`.
-- GitHub raw JSON remote config from `config/chiptune-creator.json`.
+- GitHub raw JSON remote config from `config/chiptune-creator.json`, including channels and note patterns.
 - GitHub Actions workflow for unsigned IPA artifacts.
+- The default reset pattern includes a two-bar chiptune reduction based on the requested `Suffocated by Hatred` reference.
 
 ## Build IPA
 

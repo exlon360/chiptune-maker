@@ -213,88 +213,116 @@ struct ChipTuneProject: Codable, Equatable {
             return index
         }
 
-        patterns["pulse1"] = [
-            SequencerNote(row: row("C-5"), startStep: 0, length: 1),
-            SequencerNote(row: row("C#5"), startStep: 2, length: 1, velocity: 0.82),
-            SequencerNote(row: row("C-5"), startStep: 3, length: 1, velocity: 0.92),
-            SequencerNote(row: row("G-4"), startStep: 4, length: 2),
-            SequencerNote(row: row("A#4"), startStep: 7, length: 1, velocity: 0.74),
-            SequencerNote(row: row("C-5"), startStep: 8, length: 1),
-            SequencerNote(row: row("D#5"), startStep: 10, length: 1, velocity: 0.78),
-            SequencerNote(row: row("C#5"), startStep: 11, length: 1, velocity: 0.88),
-            SequencerNote(row: row("C-5"), startStep: 12, length: 1),
-            SequencerNote(row: row("G-4"), startStep: 14, length: 2),
-            SequencerNote(row: row("F#4"), startStep: 16, length: 1),
-            SequencerNote(row: row("G-4"), startStep: 18, length: 1, velocity: 0.86),
-            SequencerNote(row: row("A#4"), startStep: 19, length: 1, velocity: 0.8),
-            SequencerNote(row: row("C-5"), startStep: 20, length: 2),
-            SequencerNote(row: row("C#5"), startStep: 23, length: 1, velocity: 0.74),
-            SequencerNote(row: row("D#5"), startStep: 24, length: 1),
-            SequencerNote(row: row("C#5"), startStep: 26, length: 1, velocity: 0.86),
-            SequencerNote(row: row("C-5"), startStep: 27, length: 1),
-            SequencerNote(row: row("A#4"), startStep: 28, length: 1, velocity: 0.9),
-            SequencerNote(row: row("G-4"), startStep: 30, length: 2)
+        func note(_ name: String, step: Int, length: Int = 1, velocity: Double = 1.0) -> SequencerNote {
+            SequencerNote(row: row(name), startStep: step, length: length, velocity: velocity)
+        }
+
+        func sequence(_ names: [String?], velocity: Double, sustainRepeats: Bool = true) -> [SequencerNote] {
+            var events = [SequencerNote]()
+            var previousName: String?
+
+            for (step, optionalName) in names.enumerated() {
+                guard let name = optionalName else {
+                    previousName = nil
+                    continue
+                }
+
+                if sustainRepeats,
+                   previousName == name,
+                   let lastIndex = events.indices.last,
+                   events[lastIndex].startStep + events[lastIndex].length == step {
+                    events[lastIndex].length += 1
+                } else {
+                    events.append(note(name, step: step, velocity: velocity))
+                }
+
+                previousName = name
+            }
+
+            return events
+        }
+
+        let extractedLead: [String?] = [
+            "G#4", "F-4", "C#4", "C#4", "F#4", "F#4", "A-4", "A-4",
+            "C-4", "A#4", "A#4", "F-4", "G-5", "D#4", "F#4", "F#4",
+            "C-5", "F-4", "F-4", "G#4", "G#4", "C#4", "D#4", "G#4",
+            "C-4", "F#4", "F#4", "F-4", "F-4", "F-4", "A#4", "F-5"
         ]
+
+        let extractedBass: [String?] = [
+            "E-3", "F-3", "C#3", "F#3", "F#3", "F#3", "G#3", "A-3",
+            "A#3", "A-3", "A#3", "F-3", "D#3", "D-3", "F#3", "F#3",
+            "F-3", "F-3", "F-3", "C#3", "C#3", "D#3", "D-3", "C#3",
+            "D#3", "F#3", "F#3", "F-3", "F-3", "D#3", "A#3", "A#3"
+        ]
+
+        patterns["pulse1"] = sequence(extractedLead, velocity: 0.94)
 
         patterns["pulse2"] = [
-            SequencerNote(row: row("C-4"), startStep: 0, length: 2, velocity: 0.78),
-            SequencerNote(row: row("C#4"), startStep: 2, length: 1, velocity: 0.58),
-            SequencerNote(row: row("C-4"), startStep: 4, length: 2, velocity: 0.78),
-            SequencerNote(row: row("A#3"), startStep: 7, length: 1, velocity: 0.64),
-            SequencerNote(row: row("C-4"), startStep: 8, length: 2, velocity: 0.78),
-            SequencerNote(row: row("D#4"), startStep: 10, length: 1, velocity: 0.58),
-            SequencerNote(row: row("C#4"), startStep: 12, length: 2, velocity: 0.72),
-            SequencerNote(row: row("G-3"), startStep: 14, length: 2, velocity: 0.68),
-            SequencerNote(row: row("F#3"), startStep: 16, length: 2, velocity: 0.74),
-            SequencerNote(row: row("G-3"), startStep: 18, length: 1, velocity: 0.58),
-            SequencerNote(row: row("A#3"), startStep: 19, length: 1, velocity: 0.62),
-            SequencerNote(row: row("C-4"), startStep: 20, length: 2, velocity: 0.82),
-            SequencerNote(row: row("C#4"), startStep: 23, length: 1, velocity: 0.58),
-            SequencerNote(row: row("D#4"), startStep: 24, length: 2, velocity: 0.76),
-            SequencerNote(row: row("C#4"), startStep: 26, length: 1, velocity: 0.66),
-            SequencerNote(row: row("A#3"), startStep: 28, length: 1, velocity: 0.72),
-            SequencerNote(row: row("G-3"), startStep: 30, length: 2, velocity: 0.76)
+            note("E-4", step: 0, length: 1, velocity: 0.58),
+            note("F-4", step: 1, length: 1, velocity: 0.64),
+            note("C#4", step: 2, length: 1, velocity: 0.56),
+            note("F#4", step: 3, length: 3, velocity: 0.68),
+            note("G#4", step: 6, length: 1, velocity: 0.56),
+            note("A#4", step: 8, length: 3, velocity: 0.7),
+            note("F-4", step: 11, length: 1, velocity: 0.58),
+            note("D#4", step: 12, length: 1, velocity: 0.56),
+            note("D-4", step: 13, length: 1, velocity: 0.54),
+            note("F#4", step: 14, length: 2, velocity: 0.68),
+            note("F-4", step: 16, length: 3, velocity: 0.72),
+            note("C#4", step: 19, length: 2, velocity: 0.58),
+            note("D#4", step: 21, length: 1, velocity: 0.56),
+            note("D-4", step: 22, length: 1, velocity: 0.54),
+            note("C#4", step: 23, length: 1, velocity: 0.56),
+            note("D#4", step: 24, length: 1, velocity: 0.58),
+            note("F#4", step: 25, length: 2, velocity: 0.7),
+            note("F-4", step: 27, length: 2, velocity: 0.66),
+            note("D#4", step: 29, length: 1, velocity: 0.56),
+            note("A#4", step: 30, length: 2, velocity: 0.74)
         ]
 
-        patterns["triangle"] = [
-            SequencerNote(row: row("C-3"), startStep: 0, length: 2, velocity: 0.95),
-            SequencerNote(row: row("C-3"), startStep: 4, length: 2, velocity: 0.9),
-            SequencerNote(row: row("C#3"), startStep: 8, length: 2, velocity: 0.92),
-            SequencerNote(row: row("G-3"), startStep: 12, length: 2, velocity: 0.78),
-            SequencerNote(row: row("F#3"), startStep: 16, length: 2, velocity: 0.94),
-            SequencerNote(row: row("G-3"), startStep: 20, length: 2, velocity: 0.78),
-            SequencerNote(row: row("D#3"), startStep: 24, length: 2, velocity: 0.9),
-            SequencerNote(row: row("C-3"), startStep: 28, length: 4, velocity: 0.98)
-        ]
+        patterns["triangle"] = sequence(extractedBass, velocity: 0.92)
 
         patterns["noise"] = [
-            SequencerNote(row: row("C-5"), startStep: 1, length: 1, velocity: 0.62),
-            SequencerNote(row: row("G-5"), startStep: 5, length: 1, velocity: 0.42),
-            SequencerNote(row: row("C-5"), startStep: 9, length: 1, velocity: 0.66),
-            SequencerNote(row: row("G-5"), startStep: 13, length: 1, velocity: 0.42),
-            SequencerNote(row: row("C-5"), startStep: 17, length: 1, velocity: 0.66),
-            SequencerNote(row: row("G-5"), startStep: 21, length: 1, velocity: 0.42),
-            SequencerNote(row: row("C-5"), startStep: 25, length: 1, velocity: 0.7),
-            SequencerNote(row: row("G-5"), startStep: 29, length: 1, velocity: 0.48)
+            note("C-5", step: 1, velocity: 0.46),
+            note("G-5", step: 3, velocity: 0.34),
+            note("C-5", step: 5, velocity: 0.44),
+            note("G-5", step: 7, velocity: 0.42),
+            note("C-5", step: 9, velocity: 0.52),
+            note("G-5", step: 11, velocity: 0.36),
+            note("C-5", step: 13, velocity: 0.5),
+            note("G-5", step: 15, velocity: 0.48),
+            note("C-5", step: 17, velocity: 0.5),
+            note("G-5", step: 19, velocity: 0.34),
+            note("C-5", step: 21, velocity: 0.48),
+            note("G-5", step: 23, velocity: 0.4),
+            note("C-5", step: 25, velocity: 0.52),
+            note("G-5", step: 27, velocity: 0.36),
+            note("C-5", step: 29, velocity: 0.58),
+            note("G-5", step: 31, velocity: 0.5)
         ]
 
         patterns["saw"] = [
-            SequencerNote(row: row("G-5"), startStep: 6, length: 1, velocity: 0.42),
-            SequencerNote(row: row("A#5"), startStep: 15, length: 1, velocity: 0.5),
-            SequencerNote(row: row("C-6"), startStep: 22, length: 1, velocity: 0.46),
-            SequencerNote(row: row("D#6"), startStep: 31, length: 1, velocity: 0.52)
+            note("G#5", step: 0, velocity: 0.34),
+            note("F#5", step: 4, length: 2, velocity: 0.38),
+            note("A#5", step: 8, length: 2, velocity: 0.36),
+            note("G-5", step: 12, velocity: 0.42),
+            note("C-6", step: 16, velocity: 0.4),
+            note("G#5", step: 19, length: 2, velocity: 0.34),
+            note("F#5", step: 25, length: 2, velocity: 0.38),
+            note("F-5", step: 31, velocity: 0.48)
         ]
 
-        patterns["kick"] = [0, 3, 8, 12, 16, 20, 24, 28].map { step in
-            SequencerNote(row: row("C-4"), startStep: step, length: 1, velocity: step.isMultiple(of: 8) ? 1.0 : 0.82)
+        patterns["kick"] = [0, 3, 4, 8, 10, 12, 16, 19, 20, 24, 27, 28, 30].map { step in
+            note("C-4", step: step, velocity: step.isMultiple(of: 8) ? 1.0 : 0.82)
         }
 
         patterns["snare"] = [7, 15, 23, 31].map { step in
-            SequencerNote(row: row("C-5"), startStep: step, length: 1, velocity: step == 31 ? 0.96 : 0.84)
+            note("C-5", step: step, velocity: step == 31 ? 0.98 : 0.86)
         }
 
-        patterns["hat"] = stride(from: 2, to: 32, by: 2).map { step in
-            SequencerNote(row: row("G-5"), startStep: step, length: 1, velocity: step.isMultiple(of: 8) ? 0.64 : 0.42)
+        patterns["hat"] = stride(from: 0, to: 32, by: 2).map { step in
+            note("G-5", step: step, velocity: step.isMultiple(of: 8) ? 0.66 : 0.42)
         }
 
         return ChipTuneProject(
@@ -312,6 +340,7 @@ struct RemoteChipTuneConfig: Codable {
     var steps: Int?
     var notes: [String]?
     var channels: [RemoteChipTuneChannel]?
+    var patterns: [String: [RemoteSequencerNote]]?
 }
 
 struct RemoteChipTuneChannel: Codable {
@@ -319,4 +348,12 @@ struct RemoteChipTuneChannel: Codable {
     var title: String?
     var waveform: ChipWaveform?
     var volume: Double?
+}
+
+struct RemoteSequencerNote: Codable {
+    var note: String?
+    var row: Int?
+    var startStep: Int
+    var length: Int?
+    var velocity: Double?
 }

@@ -296,9 +296,45 @@ final class ChipTuneStore: ObservableObject {
             }
         }
 
+        if let remotePatterns = remoteConfig.patterns {
+            for (channelID, remoteNotes) in remotePatterns where project.channels.contains(where: { $0.id == channelID }) {
+                project.patterns[channelID] = remoteNotes.compactMap { remoteNote in
+                    sequencerNote(from: remoteNote)
+                }
+            }
+        }
+
         audio.configure(channels: project.channels)
         warmCurrentSounds()
         saveProject()
+    }
+
+    private func sequencerNote(from remoteNote: RemoteSequencerNote) -> SequencerNote? {
+        let rowIndex: Int?
+        if let row = remoteNote.row, project.rowNotes.indices.contains(row) {
+            rowIndex = row
+        } else if let noteName = remoteNote.note,
+                  let note = MusicNote(trackerName: noteName),
+                  let index = project.rowNotes.firstIndex(of: note) {
+            rowIndex = index
+        } else {
+            rowIndex = nil
+        }
+
+        guard let rowIndex, project.steps > 0 else {
+            return nil
+        }
+
+        let startStep = min(max(remoteNote.startStep, 0), project.steps - 1)
+        let maxLength = max(1, project.steps - startStep)
+        let length = min(max(remoteNote.length ?? 1, 1), maxLength)
+
+        return SequencerNote(
+            row: rowIndex,
+            startStep: startStep,
+            length: length,
+            velocity: remoteNote.velocity ?? 1.0
+        )
     }
 
     private func removeOutOfRangeNotes() {
