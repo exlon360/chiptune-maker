@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 final class ChipTuneStore: ObservableObject {
     static let defaultRemoteURL = "https://raw.githubusercontent.com/exlon360/chiptune-maker/main/config/chiptune-creator.json"
-    private static let pageTitles = ["Draft", "Suffocated"]
+    private static let pageTitles = ["Draft", "Song Notes", "Suffocated"]
     private static let minimumSteps = 8
     private static let autoExtendPaddingSteps = 64
 
@@ -51,6 +51,14 @@ final class ChipTuneStore: ObservableObject {
 
     var pageIndicator: String {
         "\(currentPageIndex + 1)/\(Self.pageTitles.count)"
+    }
+
+    var isSongNotesPage: Bool {
+        currentPageIndex == 1
+    }
+
+    var songNotes: [MusicNote] {
+        MusicNote.suffocatedByHatredNotes()
     }
 
     var selectedChannel: ChipTuneChannel {
@@ -309,6 +317,26 @@ final class ChipTuneStore: ObservableObject {
         )
     }
 
+    func preview(songNote: MusicNote) {
+        audio.play(
+            note: songNote,
+            channel: selectedChannel,
+            duration: 0.28,
+            velocity: 1.0
+        )
+        statusText = songNote.displayName
+    }
+
+    func useSongNotesForRows() {
+        let rows = MusicNote.suffocatedByHatredNotes()
+        guard rows.isEmpty == false else { return }
+        project.rowNotes = rows
+        removeOutOfRangeNotes()
+        selectedNoteID = nil
+        saveProject()
+        statusText = "Song notes"
+    }
+
     func updateSelectedChannel(waveform: ChipWaveform) {
         guard let index = project.channels.firstIndex(where: { $0.id == selectedChannelID }) else { return }
         project.channels[index].waveform = waveform
@@ -537,6 +565,8 @@ final class ChipTuneStore: ObservableObject {
         switch clampedPageIndex(pageIndex) {
         case 0:
             return ChipTuneProject.blankDraft()
+        case 1:
+            return ChipTuneProject.songNotesDraft()
         default:
             return ChipTuneProject.starter()
         }

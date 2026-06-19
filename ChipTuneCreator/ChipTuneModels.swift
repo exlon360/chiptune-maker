@@ -74,6 +74,16 @@ struct MusicNote: Codable, Hashable, Identifiable {
         let top = MusicNote(semitone: 0, octave: 6).midiNumber
         return (0..<37).map { MusicNote(midiNumber: top - $0) }
     }
+
+    static func suffocatedByHatredNotes() -> [MusicNote] {
+        [
+            "C-6", "B-5", "A#5", "A-5", "G#5", "G-5", "F#5", "F-5",
+            "D#5", "D-5", "C#5", "C-5", "B-4", "A#4", "A-4", "G#4",
+            "G-4", "F#4", "F-4", "E-4", "D#4", "D-4", "C#4", "C-4",
+            "B-3", "A#3", "A-3", "G#3", "G-3", "F#3", "F-3", "E-3",
+            "D#3", "D-3", "C#3", "C-3"
+        ].compactMap { MusicNote(trackerName: $0) }
+    }
 }
 
 enum ChipWaveform: String, Codable, CaseIterable, Hashable, Identifiable {
@@ -209,6 +219,19 @@ struct ChipTuneProject: Codable, Equatable {
             tempo: 156,
             steps: 64,
             rowNotes: rows,
+            channels: ChipTuneChannel.defaults,
+            patterns: patterns
+        )
+    }
+
+    static func songNotesDraft() -> ChipTuneProject {
+        let rows = MusicNote.suffocatedByHatredNotes()
+        let patterns = Dictionary(uniqueKeysWithValues: ChipTuneChannel.defaults.map { ($0.id, [SequencerNote]()) })
+
+        return ChipTuneProject(
+            tempo: 156,
+            steps: 64,
+            rowNotes: rows.isEmpty ? MusicNote.defaultRows() : rows,
             channels: ChipTuneChannel.defaults,
             patterns: patterns
         )

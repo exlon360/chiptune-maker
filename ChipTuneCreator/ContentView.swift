@@ -12,6 +12,9 @@ struct ContentView: View {
                 HeaderView(store: store, remoteAction: { showingRemoteConfig = true })
                 ChannelStrip(store: store)
                 TransportPanel(store: store)
+                if store.isSongNotesPage {
+                    SongNotesPanel(store: store)
+                }
                 SequencerGridView(store: store)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 MixerPanel(store: store)
@@ -322,6 +325,57 @@ private struct SequencerGridView: View {
         guard let session = resizeSession, session.noteID == note.id else { return }
         let deltaSteps = Int((translation / stepWidth).rounded())
         store.resize(noteID: note.id, length: session.originalLength + deltaSteps)
+    }
+}
+
+private struct SongNotesPanel: View {
+    @ObservedObject var store: ChipTuneStore
+
+    private var columns: [GridItem] {
+        [GridItem(.adaptive(minimum: 54), spacing: 8)]
+    }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 10) {
+                Label("Song Notes", systemImage: "pianokeys")
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(Color.chipMint)
+
+                Spacer(minLength: 0)
+
+                Button {
+                    store.useSongNotesForRows()
+                } label: {
+                    Image(systemName: "list.bullet.rectangle")
+                        .frame(width: 34, height: 32)
+                }
+                .buttonStyle(ChipIconButtonStyle(tint: .chipSky))
+            }
+
+            ScrollView(.vertical, showsIndicators: true) {
+                LazyVGrid(columns: columns, spacing: 8) {
+                    ForEach(store.songNotes) { note in
+                        Button {
+                            store.preview(songNote: note)
+                        } label: {
+                            Text(note.displayName)
+                                .font(.caption.weight(.black))
+                                .frame(maxWidth: .infinity, minHeight: 30)
+                        }
+                        .buttonStyle(ChipCapsuleButtonStyle(tint: .chipMint, isSelected: false))
+                    }
+                }
+                .padding(.vertical, 1)
+            }
+            .frame(maxHeight: 112)
+        }
+        .padding(10)
+        .background(Color.white.opacity(0.065), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.chipMint.opacity(0.16), lineWidth: 1)
+        }
     }
 }
 
