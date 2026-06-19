@@ -1,0 +1,28 @@
+# ChipTune Maker
+
+ChipTune Maker is a SwiftUI iOS chiptune sequencer with a tracker-style editor and an unsigned IPA build workflow.
+
+## Features
+
+- Editable note rows on the left side of the grid.
+- Pulse 1, Pulse 2, Triangle, and Noise channels.
+- Tap or drag to draw notes.
+- Erase mode for removing notes.
+- Double-tap a note to arm resizing, then drag its right edge to extend or shorten it.
+- Tempo, channel waveform, and volume controls.
+- Local project persistence with `UserDefaults`.
+- GitHub raw JSON remote config from `config/chiptune-creator.json`.
+- GitHub Actions workflow for unsigned IPA artifacts.
+
+## Build IPA
+
+Run the `Build ChipTune Creator IPA` workflow on GitHub, or push a tag like:
+
+```bash
+git tag chiptune-v0.1.0
+git push origin chiptune-v0.1.0
+```
+
+The workflow produces `ChipTuneCreator-unsigned.ipa`.
+
+Unsigned IPAs still need signing before installing on a real iPhone.
