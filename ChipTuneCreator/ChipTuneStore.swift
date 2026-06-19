@@ -53,8 +53,16 @@ final class ChipTuneStore: ObservableObject {
         "\(currentPageIndex + 1)/\(Self.pageTitles.count)"
     }
 
+    var pageCount: Int {
+        Self.pageTitles.count
+    }
+
     var isSongNotesPage: Bool {
         currentPageIndex == 1
+    }
+
+    func pageTitle(for pageIndex: Int) -> String {
+        Self.pageTitles[Self.clampedPageIndex(pageIndex)]
     }
 
     var songNotes: [MusicNote] {
@@ -99,6 +107,10 @@ final class ChipTuneStore: ObservableObject {
 
     func previousPage() {
         switchPage(to: currentPageIndex - 1)
+    }
+
+    func setPage(_ pageIndex: Int) {
+        switchPage(to: pageIndex)
     }
 
     private func switchPage(to pageIndex: Int) {

@@ -52,13 +52,7 @@ private struct HeaderView: View {
 
             Spacer(minLength: 0)
 
-            Button {
-                store.nextPage()
-            } label: {
-                Image(systemName: "arrow.forward.square.fill")
-                    .frame(width: 40, height: 40)
-            }
-            .buttonStyle(ChipIconButtonStyle(tint: .chipMint))
+            SetsMenu(store: store)
 
             Button(action: remoteAction) {
                 Image(systemName: "arrow.down.doc.fill")
@@ -74,6 +68,38 @@ private struct HeaderView: View {
             }
             .buttonStyle(ChipPrimaryButtonStyle(isActive: store.isPlaying))
         }
+    }
+}
+
+private struct SetsMenu: View {
+    @ObservedObject var store: ChipTuneStore
+
+    var body: some View {
+        Menu {
+            ForEach(0..<store.pageCount, id: \.self) { pageIndex in
+                Button {
+                    store.setPage(pageIndex)
+                } label: {
+                    Label(
+                        store.pageTitle(for: pageIndex),
+                        systemImage: pageIndex == store.currentPageIndex ? "checkmark.circle.fill" : "music.note.list"
+                    )
+                }
+            }
+
+            Divider()
+
+            Button {
+                store.nextPage()
+            } label: {
+                Label("More", systemImage: "ellipsis.circle.fill")
+            }
+        } label: {
+            Label("Sets", systemImage: "square.grid.2x2.fill")
+                .font(.caption.weight(.black))
+                .frame(width: 78, height: 40)
+        }
+        .buttonStyle(ChipIconButtonStyle(tint: .chipMint))
     }
 }
 
