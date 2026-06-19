@@ -392,7 +392,7 @@ private struct NoteRowMenu: View {
         } label: {
             Text(note.displayName)
                 .font(.caption.weight(.black))
-                .foregroundStyle(.chipMint)
+                .foregroundStyle(Color.chipMint)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color.black.opacity(0.36), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
                 .overlay {
@@ -407,65 +407,84 @@ private struct MixerPanel: View {
     @ObservedObject var store: ChipTuneStore
 
     var body: some View {
+        panelContent
+            .padding(10)
+            .background(Color.white.opacity(0.065), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
+            }
+    }
+
+    private var panelContent: some View {
         VStack(spacing: 8) {
-            HStack(spacing: 10) {
-                Picker("Wave", selection: Binding(
-                    get: { store.selectedChannel.waveform },
-                    set: { store.updateSelectedChannel(waveform: $0) }
-                )) {
-                    ForEach(ChipWaveform.allCases) { waveform in
-                        Label(waveform.title, systemImage: waveform.symbolName).tag(waveform)
-                    }
-                }
-                .pickerStyle(.menu)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Button {
-                    store.resetSong()
-                } label: {
-                    Image(systemName: "arrow.counterclockwise")
-                        .frame(width: 38, height: 34)
-                }
-                .buttonStyle(ChipIconButtonStyle(tint: .chipSky))
-            }
-
-            HStack(spacing: 10) {
-                Label("\(Int(store.project.tempo))", systemImage: "metronome.fill")
-                    .font(.caption.weight(.black))
-                    .foregroundStyle(.chipGold)
-                    .frame(width: 64, alignment: .leading)
-
-                Slider(
-                    value: Binding(
-                        get: { store.project.tempo },
-                        set: { store.setTempo($0) }
-                    ),
-                    in: 60...190,
-                    step: 1
-                )
-                .tint(.chipGold)
-
-                Label("\(Int(store.selectedChannel.volume * 100))", systemImage: "speaker.wave.2.fill")
-                    .font(.caption.weight(.black))
-                    .foregroundStyle(.chipSky)
-                    .frame(width: 64, alignment: .trailing)
-            }
-
-            Slider(
-                value: Binding(
-                    get: { store.selectedChannel.volume },
-                    set: { store.updateSelectedChannel(volume: $0) }
-                ),
-                in: 0...1
-            )
-            .tint(.chipSky)
+            waveRow
+            tempoRow
+            volumeSlider
         }
-        .padding(10)
-        .background(Color.white.opacity(0.065), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(Color.white.opacity(0.12), lineWidth: 1)
+    }
+
+    private var waveRow: some View {
+        HStack(spacing: 10) {
+            Picker("Wave", selection: waveformBinding) {
+                ForEach(ChipWaveform.allCases) { waveform in
+                    Label(waveform.title, systemImage: waveform.symbolName).tag(waveform)
+                }
+            }
+            .pickerStyle(.menu)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Button {
+                store.resetSong()
+            } label: {
+                Image(systemName: "arrow.counterclockwise")
+                    .frame(width: 38, height: 34)
+            }
+            .buttonStyle(ChipIconButtonStyle(tint: Color.chipSky))
         }
+    }
+
+    private var tempoRow: some View {
+        HStack(spacing: 10) {
+            Label("\(Int(store.project.tempo))", systemImage: "metronome.fill")
+                .font(.caption.weight(.black))
+                .foregroundStyle(Color.chipGold)
+                .frame(width: 64, alignment: .leading)
+
+            Slider(value: tempoBinding, in: 60...190, step: 1)
+                .tint(Color.chipGold)
+
+            Label("\(Int(store.selectedChannel.volume * 100))", systemImage: "speaker.wave.2.fill")
+                .font(.caption.weight(.black))
+                .foregroundStyle(Color.chipSky)
+                .frame(width: 64, alignment: .trailing)
+        }
+    }
+
+    private var volumeSlider: some View {
+        Slider(value: volumeBinding, in: 0...1)
+            .tint(Color.chipSky)
+    }
+
+    private var waveformBinding: Binding<ChipWaveform> {
+        Binding<ChipWaveform>(
+            get: { store.selectedChannel.waveform },
+            set: { store.updateSelectedChannel(waveform: $0) }
+        )
+    }
+
+    private var tempoBinding: Binding<Double> {
+        Binding<Double>(
+            get: { store.project.tempo },
+            set: { store.setTempo($0) }
+        )
+    }
+
+    private var volumeBinding: Binding<Double> {
+        Binding<Double>(
+            get: { store.selectedChannel.volume },
+            set: { store.updateSelectedChannel(volume: $0) }
+        )
     }
 }
 
