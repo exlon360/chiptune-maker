@@ -10,7 +10,7 @@ ChipTune Maker is a SwiftUI iOS chiptune sequencer with a tracker-style editor a
 - Tap or drag to draw notes.
 - Erase mode for removing notes.
 - `Sets` button for jumping between Draft, playable Song Notes, the full `Suffocated by Hatred` song page, or More to cycle sets.
-- Playable `Suffocated by Hatred` note bank with 36 pitches from the song.
+- Playable `Suffocated by Hatred` note bank with 36 parsed pitches from the song.
 - Hold/drag a note horizontally to extend or shorten it, or double-tap a note to arm resizing first.
 - Tap a note to select it, then adjust that note's own volume and length in the mixer.
 - Growable long-song grid with +16/+64/+256, double-length, trim, and automatic edge extension while drawing or resizing.
@@ -18,7 +18,8 @@ ChipTune Maker is a SwiftUI iOS chiptune sequencer with a tracker-style editor a
 - Local project persistence with `UserDefaults`.
 - GitHub raw JSON remote config from `config/chiptune-creator.json`, including channels and note patterns.
 - GitHub Actions workflow for unsigned IPA artifacts.
-- The song page and remote config include a 1,936-step requested `Suffocated by Hatred` full-song note map.
+- The song page and remote config include a 1,936-step, 4,126-event parsed `Suffocated by Hatred` full-song note map.
+- `scripts/transcribe_suffocated_notes.py` regenerates the song map from the permitted source audio.
 
 ## Build IPA
 
