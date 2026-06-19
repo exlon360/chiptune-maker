@@ -207,10 +207,14 @@ struct ChipTuneChannel: Codable, Identifiable, Equatable {
         ChipTuneChannel(id: "pulse2", title: "Pulse 2", waveform: .pulse25, volume: 0.38),
         ChipTuneChannel(id: "triangle", title: "Triangle", waveform: .triangle, volume: 0.42),
         ChipTuneChannel(id: "saw", title: "Saw Lead", waveform: .saw, volume: 0.32),
+        ChipTuneChannel(id: "sinepad", title: "Sine Pad", waveform: .sine, volume: 0.3),
+        ChipTuneChannel(id: "pluck", title: "Pluck", waveform: .pluck, volume: 0.34),
+        ChipTuneChannel(id: "pulse75", title: "Pulse 75", waveform: .pulse75, volume: 0.32),
         ChipTuneChannel(id: "noise", title: "Noise", waveform: .noise, volume: 0.24),
         ChipTuneChannel(id: "kick", title: "Kick", waveform: .kick, volume: 0.62),
         ChipTuneChannel(id: "snare", title: "Snare", waveform: .snare, volume: 0.42),
-        ChipTuneChannel(id: "hat", title: "Hat", waveform: .hat, volume: 0.28)
+        ChipTuneChannel(id: "hat", title: "Hat", waveform: .hat, volume: 0.28),
+        ChipTuneChannel(id: "tom", title: "Tom", waveform: .tom, volume: 0.38)
     ]
 }
 
@@ -237,6 +241,7 @@ struct SequencerNote: Codable, Identifiable, Equatable {
 enum ChipTuneEditMode: String, CaseIterable, Identifiable {
     case draw
     case erase
+    case scroll
 
     var id: String { rawValue }
 }

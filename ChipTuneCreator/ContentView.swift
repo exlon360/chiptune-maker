@@ -53,6 +53,7 @@ private struct HeaderView: View {
             Spacer(minLength: 0)
 
             SetsMenu(store: store)
+            MySongsMenu(store: store)
 
             Button(action: remoteAction) {
                 Image(systemName: "arrow.down.doc.fill")
@@ -103,6 +104,30 @@ private struct SetsMenu: View {
     }
 }
 
+private struct MySongsMenu: View {
+    @ObservedObject var store: ChipTuneStore
+
+    var body: some View {
+        Menu {
+            ForEach(0..<store.pageCount, id: \.self) { pageIndex in
+                Button {
+                    store.setPage(pageIndex)
+                } label: {
+                    Label(
+                        store.songTitle(for: pageIndex),
+                        systemImage: pageIndex == store.currentPageIndex ? "checkmark.circle.fill" : "music.note.list"
+                    )
+                }
+            }
+        } label: {
+            Label("My Songs", systemImage: "folder.fill")
+                .font(.caption.weight(.black))
+                .frame(width: 104, height: 40)
+        }
+        .buttonStyle(ChipIconButtonStyle(tint: .chipGold))
+    }
+}
+
 private struct ChannelStrip: View {
     @ObservedObject var store: ChipTuneStore
 
@@ -135,9 +160,10 @@ private struct TransportPanel: View {
                 Picker("Mode", selection: $store.editMode) {
                     Label("Draw", systemImage: "pencil.tip.crop.circle.fill").tag(ChipTuneEditMode.draw)
                     Label("Erase", systemImage: "eraser.fill").tag(ChipTuneEditMode.erase)
+                    Label("Scroll", systemImage: "hand.draw.fill").tag(ChipTuneEditMode.scroll)
                 }
                 .pickerStyle(.segmented)
-                .frame(width: 172)
+                .frame(width: 254)
 
                 TempoMenu(store: store)
 
@@ -442,7 +468,7 @@ private struct SequencerGridView: View {
                             height: CGFloat(visibleRows.count) * rowHeight
                         )
                         .contentShape(Rectangle())
-                        .gesture(gridPaintGesture(visibleRows: visibleRows))
+                        .paintGesture(enabled: store.editMode != .scroll, gesture: gridPaintGesture(visibleRows: visibleRows))
                     }
                 }
             }
@@ -764,7 +790,7 @@ private struct NoteBlock: View {
     private func resizeDragGesture(width: CGFloat) -> some Gesture {
         DragGesture(minimumDistance: 4)
             .onChanged { value in
-                guard editMode != .erase else { return }
+                guard editMode == .draw else { return }
                 let horizontalDrag = abs(value.translation.width)
                 let verticalDrag = abs(value.translation.height)
                 let beganOnHandle = value.startLocation.x >= width - 20
@@ -1100,6 +1126,17 @@ private struct GridPaintPoint: Equatable {
 private struct ResizeSession {
     let noteID: UUID
     let originalLength: Int
+}
+
+private extension View {
+    @ViewBuilder
+    func paintGesture<PaintGesture: Gesture>(enabled: Bool, gesture: PaintGesture) -> some View {
+        if enabled {
+            self.gesture(gesture)
+        } else {
+            self
+        }
+    }
 }
 
 private extension ChipWaveform {

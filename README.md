@@ -5,11 +5,13 @@ ChipTune Maker is a SwiftUI iOS chiptune sequencer with a tracker-style editor a
 ## Features
 
 - Editable note rows on the left side of the grid.
-- Pulse, triangle, saw, noise, kick, snare, and hat channels.
+- Pulse, triangle, saw, sine pad, pluck, noise, kick, snare, hat, and tom channels.
 - Extra chip sounds: 12.5/25/50/75 pulse, triangle, saw, sine, pluck, noise, kick, snare, hat, and tom.
 - Tap or drag to draw notes.
 - Erase mode for removing notes.
 - `Sets` button for jumping between Draft, playable Song Notes, the full `Suffocated by Hatred` song page, or More to cycle sets.
+- `My Songs` menu for jumping straight into saved song pages.
+- Scroll mode beside Draw and Erase for moving around long songs without editing notes.
 - Loop region lane above the bar markers with draggable start/end handles and loop playback.
 - Transport tempo selector with common BPM presets and one-BPM nudges.
 - Key selector that folds the piano roll to only notes in the selected key/scale.

@@ -91,6 +91,17 @@ final class ChipTuneStore: ObservableObject {
         Self.pageTitles[Self.clampedPageIndex(pageIndex)]
     }
 
+    func songTitle(for pageIndex: Int) -> String {
+        switch Self.clampedPageIndex(pageIndex) {
+        case 0:
+            return "Draft Song"
+        case 1:
+            return "Song Notes"
+        default:
+            return "Suffocated by Hatred"
+        }
+    }
+
     var songNotes: [MusicNote] {
         MusicNote.suffocatedByHatredNotes()
     }
@@ -326,6 +337,8 @@ final class ChipTuneStore: ObservableObject {
             addNote(row: row, step: step)
         case .erase:
             deleteNote(row: row, step: step)
+        case .scroll:
+            break
         }
     }
 
