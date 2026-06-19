@@ -4,6 +4,8 @@ import Foundation
 @MainActor
 final class ChipTuneStore: ObservableObject {
     static let defaultRemoteURL = "https://raw.githubusercontent.com/exlon360/chiptune-maker/main/config/chiptune-creator.json"
+    private static let minimumSteps = 8
+    private static let autoExtendPaddingSteps = 64
 
     @Published var project: ChipTuneProject
     @Published var selectedChannelID: String
@@ -74,7 +76,32 @@ final class ChipTuneStore: ObservableObject {
     }
 
     func setSteps(_ steps: Int) {
-        let clamped = min(max(steps, 8), 64)
+        setSteps(steps, shouldSave: true)
+    }
+
+    func extendSong(by steps: Int) {
+        guard steps > 0 else { return }
+        setSteps(project.steps + steps)
+        statusText = "\(project.steps) steps"
+    }
+
+    func doubleSongLength() {
+        setSteps(project.steps * 2)
+        statusText = "\(project.steps) steps"
+    }
+
+    func trimSongToLastNote() {
+        let lastUsedStep = project.patterns.values
+            .flatMap { $0 }
+            .map { $0.startStep + $0.length }
+            .max() ?? Self.minimumSteps
+        let roundedSteps = max(Self.minimumSteps, ((lastUsedStep + 15) / 16) * 16)
+        setSteps(roundedSteps)
+        statusText = "\(project.steps) steps"
+    }
+
+    private func setSteps(_ steps: Int, shouldSave: Bool) {
+        let clamped = max(steps, Self.minimumSteps)
         project.steps = clamped
         for channel in project.channels {
             project.patterns[channel.id] = (project.patterns[channel.id] ?? []).compactMap { note in
@@ -84,7 +111,9 @@ final class ChipTuneStore: ObservableObject {
                 return clipped
             }
         }
-        saveProject()
+        if shouldSave {
+            saveProject()
+        }
     }
 
     func applyGridInteraction(row: Int, step: Int) {
@@ -99,6 +128,7 @@ final class ChipTuneStore: ObservableObject {
     }
 
     func addNote(row: Int, step: Int) {
+        ensureStepCapacity(through: step + selectedLength + Self.autoExtendPaddingSteps, shouldSave: false)
         let length = min(selectedLength, project.steps - step)
         guard length > 0 else { return }
 
@@ -141,7 +171,9 @@ final class ChipTuneStore: ObservableObject {
         guard let index = channelNotes.firstIndex(where: { $0.id == noteID }) else { return }
 
         var note = channelNotes[index]
-        let clamped = min(max(length, 1), project.steps - note.startStep)
+        let requestedLength = max(length, 1)
+        ensureStepCapacity(through: note.startStep + requestedLength + Self.autoExtendPaddingSteps, shouldSave: false)
+        let clamped = min(requestedLength, project.steps - note.startStep)
         let nextRange = note.startStep..<(note.startStep + clamped)
         let overlapsAnother = channelNotes.contains { candidate in
             candidate.id != noteID &&
@@ -260,7 +292,7 @@ final class ChipTuneStore: ObservableObject {
         }
 
         if let steps = remoteConfig.steps {
-            setSteps(steps)
+            setSteps(steps, shouldSave: false)
         }
 
         if let notes = remoteConfig.notes {
@@ -297,6 +329,7 @@ final class ChipTuneStore: ObservableObject {
         }
 
         if let remotePatterns = remoteConfig.patterns {
+            ensureStepCapacity(through: Self.requiredSteps(for: remotePatterns), shouldSave: false)
             for (channelID, remoteNotes) in remotePatterns where project.channels.contains(where: { $0.id == channelID }) {
                 project.patterns[channelID] = remoteNotes.compactMap { remoteNote in
                     sequencerNote(from: remoteNote)
@@ -307,6 +340,19 @@ final class ChipTuneStore: ObservableObject {
         audio.configure(channels: project.channels)
         warmCurrentSounds()
         saveProject()
+    }
+
+    private func ensureStepCapacity(through requiredStep: Int, shouldSave: Bool) {
+        guard requiredStep > project.steps else { return }
+        let roundedSteps = ((requiredStep + 15) / 16) * 16
+        setSteps(roundedSteps, shouldSave: shouldSave)
+    }
+
+    private static func requiredSteps(for patterns: [String: [RemoteSequencerNote]]) -> Int {
+        patterns.values
+            .flatMap { $0 }
+            .map { $0.startStep + max($0.length ?? 1, 1) }
+            .max() ?? minimumSteps
     }
 
     private func sequencerNote(from remoteNote: RemoteSequencerNote) -> SequencerNote? {

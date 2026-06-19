@@ -10,11 +10,12 @@ ChipTune Maker is a SwiftUI iOS chiptune sequencer with a tracker-style editor a
 - Tap or drag to draw notes.
 - Erase mode for removing notes.
 - Double-tap a note to arm resizing, then drag its right edge to extend or shorten it.
+- Growable long-song grid with +16/+64/+256, double-length, trim, and automatic edge extension while drawing or resizing.
 - Tempo, channel waveform, and volume controls.
 - Local project persistence with `UserDefaults`.
 - GitHub raw JSON remote config from `config/chiptune-creator.json`, including channels and note patterns.
 - GitHub Actions workflow for unsigned IPA artifacts.
-- The default reset pattern includes a two-bar chiptune reduction based on the requested `Suffocated by Hatred` reference.
+- The default reset pattern and remote config include the requested `Suffocated by Hatred` note pattern.
 
 ## Build IPA
 

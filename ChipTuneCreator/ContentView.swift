@@ -93,39 +93,88 @@ private struct TransportPanel: View {
     @ObservedObject var store: ChipTuneStore
 
     var body: some View {
-        HStack(spacing: 8) {
-            Picker("Mode", selection: $store.editMode) {
-                Label("Draw", systemImage: "pencil.tip.crop.circle.fill").tag(ChipTuneEditMode.draw)
-                Label("Erase", systemImage: "eraser.fill").tag(ChipTuneEditMode.erase)
-            }
-            .pickerStyle(.segmented)
-            .frame(maxWidth: 188)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                Picker("Mode", selection: $store.editMode) {
+                    Label("Draw", systemImage: "pencil.tip.crop.circle.fill").tag(ChipTuneEditMode.draw)
+                    Label("Erase", systemImage: "eraser.fill").tag(ChipTuneEditMode.erase)
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 172)
 
-            Stepper(value: Binding(
-                get: { store.selectedLength },
-                set: { store.setSelectedLength($0) }
-            ), in: 1...16) {
-                Label("\(store.selectedLength)", systemImage: "arrow.left.and.right")
-                    .font(.caption.weight(.black))
-                    .frame(minWidth: 54)
-            }
+                Stepper(value: Binding(
+                    get: { store.selectedLength },
+                    set: { store.setSelectedLength($0) }
+                ), in: 1...16) {
+                    Label("\(store.selectedLength)", systemImage: "arrow.left.and.right")
+                        .font(.caption.weight(.black))
+                        .frame(minWidth: 54)
+                }
 
-            Button {
-                store.stop()
-            } label: {
-                Image(systemName: "stop.fill")
-                    .frame(width: 36, height: 34)
-            }
-            .buttonStyle(ChipIconButtonStyle(tint: .chipRose))
+                SongLengthMenu(store: store)
 
-            Button {
-                store.clearSelectedChannel()
-            } label: {
-                Image(systemName: "trash.fill")
-                    .frame(width: 36, height: 34)
+                Button {
+                    store.stop()
+                } label: {
+                    Image(systemName: "stop.fill")
+                        .frame(width: 36, height: 34)
+                }
+                .buttonStyle(ChipIconButtonStyle(tint: .chipRose))
+
+                Button {
+                    store.clearSelectedChannel()
+                } label: {
+                    Image(systemName: "trash.fill")
+                        .frame(width: 36, height: 34)
+                }
+                .buttonStyle(ChipIconButtonStyle(tint: .chipGold))
             }
-            .buttonStyle(ChipIconButtonStyle(tint: .chipGold))
+            .padding(.vertical, 1)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct SongLengthMenu: View {
+    @ObservedObject var store: ChipTuneStore
+
+    var body: some View {
+        Menu {
+            Button {
+                store.extendSong(by: 16)
+            } label: {
+                Label("+16 steps", systemImage: "plus")
+            }
+
+            Button {
+                store.extendSong(by: 64)
+            } label: {
+                Label("+64 steps", systemImage: "plus")
+            }
+
+            Button {
+                store.extendSong(by: 256)
+            } label: {
+                Label("+256 steps", systemImage: "forward.end.fill")
+            }
+
+            Button {
+                store.doubleSongLength()
+            } label: {
+                Label("Double length", systemImage: "arrow.left.and.right")
+            }
+
+            Button {
+                store.trimSongToLastNote()
+            } label: {
+                Label("Trim to notes", systemImage: "scissors")
+            }
+        } label: {
+            Label("\(store.project.steps)", systemImage: "arrow.right.to.line")
+                .font(.caption.weight(.black))
+                .frame(width: 84, height: 34)
+        }
+        .buttonStyle(ChipIconButtonStyle(tint: .chipMint))
     }
 }
 
@@ -261,15 +310,26 @@ private struct StepHeader: View {
     let height: CGFloat
 
     var body: some View {
-        HStack(spacing: 0) {
-            ForEach(0..<steps, id: \.self) { step in
-                Text(step.isMultiple(of: 4) ? "\(step + 1)" : "")
+        Canvas { context, size in
+            context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Color.white.opacity(0.035)))
+
+            let labelEvery = steps > 2048 ? 16 : 4
+            for step in stride(from: 0, to: max(steps, 1), by: 4) {
+                let x = CGFloat(step) * stepWidth
+                let blockColor = step.isMultiple(of: 16) ? Color.white.opacity(0.1) : Color.white.opacity(0.055)
+                context.fill(
+                    Path(CGRect(x: x, y: 0, width: stepWidth * 4, height: height)),
+                    with: .color(blockColor)
+                )
+
+                guard step.isMultiple(of: labelEvery) else { continue }
+                let text = Text("\(step + 1)")
                     .font(.caption2.weight(.black))
                     .foregroundStyle(step.isMultiple(of: 16) ? Color.chipGold : Color.white.opacity(0.46))
-                    .frame(width: stepWidth, height: height)
-                    .background(step.isMultiple(of: 4) ? Color.white.opacity(0.08) : Color.white.opacity(0.035))
+                context.draw(text, at: CGPoint(x: x + stepWidth / 2, y: height / 2), anchor: .center)
             }
         }
+        .frame(width: max(stepWidth, CGFloat(max(steps, 1)) * stepWidth), height: height)
     }
 }
 
@@ -280,37 +340,36 @@ private struct GridBackground: View {
     let stepWidth: CGFloat
 
     var body: some View {
-        VStack(spacing: 0) {
-            ForEach(0..<rows, id: \.self) { row in
-                HStack(spacing: 0) {
-                    ForEach(0..<steps, id: \.self) { step in
-                        Rectangle()
-                            .fill(cellColor(row: row, step: step))
-                            .frame(width: stepWidth, height: rowHeight)
-                            .overlay(alignment: .trailing) {
-                                Rectangle()
-                                    .fill(step.isMultiple(of: 4) ? Color.white.opacity(0.16) : Color.white.opacity(0.07))
-                                    .frame(width: 1)
-                            }
-                            .overlay(alignment: .bottom) {
-                                Rectangle()
-                                    .fill(Color.white.opacity(0.055))
-                                    .frame(height: 1)
-                            }
-                    }
-                }
+        Canvas { context, size in
+            context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Color.chipInk.opacity(0.76)))
+
+            for row in 0..<max(rows, 1) {
+                let y = CGFloat(row) * rowHeight
+                let color = Color.white.opacity(row.isMultiple(of: 2) ? 0.045 : 0.026)
+                context.fill(Path(CGRect(x: 0, y: y, width: size.width, height: rowHeight)), with: .color(color))
+            }
+
+            for step in stride(from: 0, to: max(steps, 1), by: 4) {
+                let x = CGFloat(step) * stepWidth
+                let color = step.isMultiple(of: 16) ? Color.chipInk.opacity(0.48) : Color.chipPanel.opacity(0.34)
+                context.fill(Path(CGRect(x: x, y: 0, width: stepWidth * 4, height: size.height)), with: .color(color))
+            }
+
+            for step in 0...max(steps, 1) {
+                let x = CGFloat(step) * stepWidth
+                let lineColor = step.isMultiple(of: 4) ? Color.white.opacity(0.16) : Color.white.opacity(0.07)
+                context.fill(Path(CGRect(x: x, y: 0, width: 1, height: size.height)), with: .color(lineColor))
+            }
+
+            for row in 0...max(rows, 1) {
+                let y = CGFloat(row) * rowHeight
+                context.fill(Path(CGRect(x: 0, y: y, width: size.width, height: 1)), with: .color(Color.white.opacity(0.055)))
             }
         }
-    }
-
-    private func cellColor(row: Int, step: Int) -> Color {
-        if step.isMultiple(of: 16) {
-            return Color.chipInk.opacity(row.isMultiple(of: 2) ? 0.82 : 0.72)
-        }
-        if step.isMultiple(of: 4) {
-            return Color.chipPanel.opacity(row.isMultiple(of: 2) ? 0.78 : 0.66)
-        }
-        return Color.white.opacity(row.isMultiple(of: 2) ? 0.045 : 0.028)
+        .frame(
+            width: max(stepWidth, CGFloat(max(steps, 1)) * stepWidth),
+            height: max(rowHeight, CGFloat(max(rows, 1)) * rowHeight)
+        )
     }
 }
 
