@@ -183,6 +183,7 @@ private struct SequencerGridView: View {
     @State private var lastPaintedPoint: GridPaintPoint?
     @State private var armedResizeNoteID: UUID?
     @State private var resizeSession: ResizeSession?
+    @State private var isResizingNote = false
 
     private let rowHeight: CGFloat = 30
     private let stepWidth: CGFloat = 32
@@ -229,10 +230,15 @@ private struct SequencerGridView: View {
                                     previewAction: { store.preview(row: note.row, velocity: note.velocity) },
                                     deleteAction: { store.delete(noteID: note.id) },
                                     armResizeAction: { armedResizeNoteID = note.id },
+                                    resizeStartAction: {
+                                        isResizingNote = true
+                                        armedResizeNoteID = note.id
+                                    },
                                     resizeAction: { translation in
                                         resize(note: note, translation: translation)
                                     },
                                     resizeEndAction: {
+                                        isResizingNote = false
                                         resizeSession = nil
                                         armedResizeNoteID = nil
                                         store.finishResize()
@@ -272,6 +278,7 @@ private struct SequencerGridView: View {
     private var gridPaintGesture: some Gesture {
         DragGesture(minimumDistance: 0)
             .onChanged { value in
+                guard isResizingNote == false else { return }
                 guard let point = gridPoint(for: value.location), point != lastPaintedPoint else { return }
                 lastPaintedPoint = point
                 store.applyGridInteraction(row: point.row, step: point.step)
@@ -383,14 +390,16 @@ private struct NoteBlock: View {
     let previewAction: () -> Void
     let deleteAction: () -> Void
     let armResizeAction: () -> Void
+    let resizeStartAction: () -> Void
     let resizeAction: (CGFloat) -> Void
     let resizeEndAction: () -> Void
 
     @State private var isHoldResizing = false
+    @State private var didDragResize = false
 
     var body: some View {
         let width = max(16, CGFloat(note.length) * stepWidth - 3)
-        let isResizing = isArmed || isHoldResizing
+        let isResizing = isArmed || isHoldResizing || didDragResize
 
         HStack(spacing: 2) {
             Text(note.length > 2 ? "\(displayNote.displayName) \(note.length)" : displayNote.displayName)
@@ -426,45 +435,35 @@ private struct NoteBlock: View {
             TapGesture(count: 2)
                 .onEnded { armResizeAction() }
         )
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { value in
-                    guard isArmed || value.startLocation.x >= width - 14 else { return }
-                    resizeAction(value.translation.width)
-                }
-                .onEnded { _ in
-                    resizeEndAction()
-                }
-        )
-        .simultaneousGesture(holdResizeGesture)
+        .highPriorityGesture(resizeDragGesture(width: width))
     }
 
-    private var holdResizeGesture: some Gesture {
-        LongPressGesture(minimumDuration: 0.28, maximumDistance: 14)
-            .sequenced(before: DragGesture(minimumDistance: 0))
+    private func resizeDragGesture(width: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 4)
             .onChanged { value in
-                switch value {
-                case .first(true):
-                    beginHoldResize()
-                case .second(true, let drag):
-                    beginHoldResize()
-                    if let drag {
-                        resizeAction(drag.translation.width)
-                    }
-                default:
-                    break
-                }
+                guard editMode != .erase else { return }
+                let horizontalDrag = abs(value.translation.width)
+                let verticalDrag = abs(value.translation.height)
+                let beganOnHandle = value.startLocation.x >= width - 20
+                let shouldResize = isArmed || isHoldResizing || beganOnHandle || horizontalDrag > max(8, verticalDrag)
+                guard shouldResize else { return }
+
+                beginResize()
+                didDragResize = true
+                resizeAction(value.translation.width)
             }
             .onEnded { _ in
+                guard didDragResize || isHoldResizing || isArmed else { return }
                 isHoldResizing = false
+                didDragResize = false
                 resizeEndAction()
             }
     }
 
-    private func beginHoldResize() {
-        guard isHoldResizing == false else { return }
+    private func beginResize() {
+        guard isHoldResizing == false && didDragResize == false else { return }
         isHoldResizing = true
-        armResizeAction()
+        resizeStartAction()
     }
 }
 

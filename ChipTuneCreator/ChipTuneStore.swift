@@ -436,9 +436,14 @@ final class ChipTuneStore: ObservableObject {
     }
 
     private func warmCurrentSounds() {
+        var warmedKeys = Set<String>()
+
         for channel in project.channels {
             let events = project.patterns[channel.id] ?? []
             for event in events where project.rowNotes.indices.contains(event.row) {
+                let warmKey = "\(channel.id)-\(event.row)-\(event.length)"
+                guard warmedKeys.insert(warmKey).inserted else { continue }
+
                 audio.preload(
                     note: project.rowNotes[event.row],
                     channel: channel,
