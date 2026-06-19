@@ -14,6 +14,7 @@ ChipTune Maker is a SwiftUI iOS chiptune sequencer with a tracker-style editor a
 - Local project persistence with `UserDefaults`.
 - GitHub raw JSON remote config from `config/chiptune-creator.json`.
 - GitHub Actions workflow for unsigned IPA artifacts.
+- The default reset pattern includes an original dark chromatic chiptune riff with heavier drums and bass.
 
 ## Build IPA
 
