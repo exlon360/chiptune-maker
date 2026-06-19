@@ -29,10 +29,12 @@ final class ChipTuneStore: ObservableObject {
             loadedProject = ChipTuneProject.starter()
         }
 
-        project = loadedProject
-        selectedChannelID = loadedProject.channels.first?.id ?? "pulse1"
+        let normalizedProject = Self.normalized(project: loadedProject)
+        project = normalizedProject
+        selectedChannelID = normalizedProject.channels.first?.id ?? "pulse1"
         remoteURLString = UserDefaults.standard.string(forKey: remoteURLDefaultsKey) ?? Self.defaultRemoteURL
-        audio.configure(channels: loadedProject.channels)
+        audio.configure(channels: normalizedProject.channels)
+        warmCurrentSounds()
     }
 
     var selectedChannel: ChipTuneChannel {
@@ -109,6 +111,11 @@ final class ChipTuneStore: ObservableObject {
         let newNote = SequencerNote(row: row, startStep: step, length: length)
         channelNotes.append(newNote)
         project.patterns[selectedChannelID] = channelNotes
+        audio.preload(
+            note: project.rowNotes[row],
+            channel: selectedChannel,
+            duration: stepDuration * Double(length) * 0.96
+        )
         preview(row: row, velocity: 0.75)
         saveProject()
     }
@@ -188,6 +195,7 @@ final class ChipTuneStore: ObservableObject {
 
     func play() {
         audio.configure(channels: project.channels)
+        warmCurrentSounds()
         isPlaying = true
         nextPlaybackStep = playheadStep % max(project.steps, 1)
         advanceStep()
@@ -215,6 +223,7 @@ final class ChipTuneStore: ObservableObject {
         project = ChipTuneProject.starter()
         selectedChannelID = project.channels.first?.id ?? selectedChannelID
         audio.configure(channels: project.channels)
+        warmCurrentSounds()
         saveProject()
         statusText = "Reset"
     }
@@ -264,20 +273,31 @@ final class ChipTuneStore: ObservableObject {
 
         if let remoteChannels = remoteConfig.channels {
             for remoteChannel in remoteChannels {
-                guard let index = project.channels.firstIndex(where: { $0.id == remoteChannel.id }) else { continue }
-                if let title = remoteChannel.title {
-                    project.channels[index].title = title
-                }
-                if let waveform = remoteChannel.waveform {
-                    project.channels[index].waveform = waveform
-                }
-                if let volume = remoteChannel.volume {
-                    project.channels[index].volume = min(max(volume, 0.0), 1.0)
+                if let index = project.channels.firstIndex(where: { $0.id == remoteChannel.id }) {
+                    if let title = remoteChannel.title {
+                        project.channels[index].title = title
+                    }
+                    if let waveform = remoteChannel.waveform {
+                        project.channels[index].waveform = waveform
+                    }
+                    if let volume = remoteChannel.volume {
+                        project.channels[index].volume = min(max(volume, 0.0), 1.0)
+                    }
+                } else {
+                    let channel = ChipTuneChannel(
+                        id: remoteChannel.id,
+                        title: remoteChannel.title ?? remoteChannel.id,
+                        waveform: remoteChannel.waveform ?? .pulse50,
+                        volume: min(max(remoteChannel.volume ?? 0.36, 0.0), 1.0)
+                    )
+                    project.channels.append(channel)
+                    project.patterns[channel.id] = project.patterns[channel.id] ?? []
                 }
             }
         }
 
         audio.configure(channels: project.channels)
+        warmCurrentSounds()
         saveProject()
     }
 
@@ -322,5 +342,31 @@ final class ChipTuneStore: ObservableObject {
 
     private func rangesOverlap(_ lhs: Range<Int>, _ rhs: Range<Int>) -> Bool {
         lhs.lowerBound < rhs.upperBound && rhs.lowerBound < lhs.upperBound
+    }
+
+    private static func normalized(project: ChipTuneProject) -> ChipTuneProject {
+        var normalized = project
+        for channel in ChipTuneChannel.defaults where normalized.channels.contains(where: { $0.id == channel.id }) == false {
+            normalized.channels.append(channel)
+            normalized.patterns[channel.id] = normalized.patterns[channel.id] ?? []
+        }
+        return normalized
+    }
+
+    private func warmCurrentSounds() {
+        for channel in project.channels {
+            let events = project.patterns[channel.id] ?? []
+            for event in events where project.rowNotes.indices.contains(event.row) {
+                audio.preload(
+                    note: project.rowNotes[event.row],
+                    channel: channel,
+                    duration: stepDuration * Double(event.length) * 0.96
+                )
+            }
+        }
+
+        for row in project.rowNotes.prefix(8) {
+            audio.preload(note: row, channel: selectedChannel, duration: 0.18)
+        }
     }
 }

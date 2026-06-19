@@ -625,10 +625,26 @@ private extension ChipWaveform {
             return "alternatingcurrent"
         case .pulse50:
             return "waveform"
+        case .pulse75:
+            return "waveform.path.ecg"
         case .triangle:
             return "triangle.fill"
+        case .saw:
+            return "chart.line.uptrend.xyaxis"
+        case .sine:
+            return "waveform.path"
+        case .pluck:
+            return "guitars.fill"
         case .noise:
             return "sparkles"
+        case .kick:
+            return "circle.circle.fill"
+        case .snare:
+            return "smallcircle.filled.circle.fill"
+        case .hat:
+            return "asterisk"
+        case .tom:
+            return "record.circle"
         }
     }
 
@@ -640,10 +656,26 @@ private extension ChipWaveform {
             return .chipSky
         case .pulse50:
             return .chipGold
+        case .pulse75:
+            return .chipOrange
         case .triangle:
             return .chipViolet
+        case .saw:
+            return .chipSky
+        case .sine:
+            return .chipMint
+        case .pluck:
+            return .chipGold
         case .noise:
             return .chipRose
+        case .kick:
+            return .chipOrange
+        case .snare:
+            return .chipRose
+        case .hat:
+            return .chipSky
+        case .tom:
+            return .chipViolet
         }
     }
 }
@@ -656,6 +688,7 @@ private extension Color {
     static let chipGold = Color(red: 1.0, green: 0.76, blue: 0.24)
     static let chipRose = Color(red: 1.0, green: 0.36, blue: 0.47)
     static let chipViolet = Color(red: 0.72, green: 0.54, blue: 1.0)
+    static let chipOrange = Color(red: 1.0, green: 0.54, blue: 0.24)
 }
 
 struct ContentView_Previews: PreviewProvider {

@@ -5,7 +5,8 @@ ChipTune Maker is a SwiftUI iOS chiptune sequencer with a tracker-style editor a
 ## Features
 
 - Editable note rows on the left side of the grid.
-- Pulse 1, Pulse 2, Triangle, and Noise channels.
+- Pulse, triangle, saw, noise, kick, snare, and hat channels.
+- Extra chip sounds: 12.5/25/50/75 pulse, triangle, saw, sine, pluck, noise, kick, snare, hat, and tom.
 - Tap or drag to draw notes.
 - Erase mode for removing notes.
 - Double-tap a note to arm resizing, then drag its right edge to extend or shorten it.

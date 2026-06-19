@@ -76,12 +76,20 @@ struct MusicNote: Codable, Hashable, Identifiable {
     }
 }
 
-enum ChipWaveform: String, Codable, CaseIterable, Identifiable {
+enum ChipWaveform: String, Codable, CaseIterable, Hashable, Identifiable {
     case pulse12
     case pulse25
     case pulse50
+    case pulse75
     case triangle
+    case saw
+    case sine
+    case pluck
     case noise
+    case kick
+    case snare
+    case hat
+    case tom
 
     var id: String { rawValue }
 
@@ -93,10 +101,26 @@ enum ChipWaveform: String, Codable, CaseIterable, Identifiable {
             return "25%"
         case .pulse50:
             return "50%"
+        case .pulse75:
+            return "75%"
         case .triangle:
             return "Tri"
+        case .saw:
+            return "Saw"
+        case .sine:
+            return "Sine"
+        case .pluck:
+            return "Pluck"
         case .noise:
             return "Noise"
+        case .kick:
+            return "Kick"
+        case .snare:
+            return "Snare"
+        case .hat:
+            return "Hat"
+        case .tom:
+            return "Tom"
         }
     }
 
@@ -108,8 +132,19 @@ enum ChipWaveform: String, Codable, CaseIterable, Identifiable {
             return 0.25
         case .pulse50:
             return 0.5
-        case .triangle, .noise:
+        case .pulse75:
+            return 0.75
+        case .triangle, .saw, .sine, .pluck, .noise, .kick, .snare, .hat, .tom:
             return 0.5
+        }
+    }
+
+    var isPercussion: Bool {
+        switch self {
+        case .kick, .snare, .hat, .tom:
+            return true
+        case .pulse12, .pulse25, .pulse50, .pulse75, .triangle, .saw, .sine, .pluck, .noise:
+            return false
         }
     }
 }
@@ -124,7 +159,11 @@ struct ChipTuneChannel: Codable, Identifiable, Equatable {
         ChipTuneChannel(id: "pulse1", title: "Pulse 1", waveform: .pulse50, volume: 0.46),
         ChipTuneChannel(id: "pulse2", title: "Pulse 2", waveform: .pulse25, volume: 0.38),
         ChipTuneChannel(id: "triangle", title: "Triangle", waveform: .triangle, volume: 0.42),
-        ChipTuneChannel(id: "noise", title: "Noise", waveform: .noise, volume: 0.26)
+        ChipTuneChannel(id: "saw", title: "Saw Lead", waveform: .saw, volume: 0.32),
+        ChipTuneChannel(id: "noise", title: "Noise", waveform: .noise, volume: 0.24),
+        ChipTuneChannel(id: "kick", title: "Kick", waveform: .kick, volume: 0.62),
+        ChipTuneChannel(id: "snare", title: "Snare", waveform: .snare, volume: 0.42),
+        ChipTuneChannel(id: "hat", title: "Hat", waveform: .hat, volume: 0.28)
     ]
 }
 
@@ -216,6 +255,29 @@ struct ChipTuneProject: Codable, Equatable {
 
         patterns["noise"] = stride(from: 0, to: 32, by: 4).map { step in
             SequencerNote(row: row(step.isMultiple(of: 8) ? "C-5" : "G-5"), startStep: step, length: 1, velocity: step.isMultiple(of: 8) ? 0.85 : 0.52)
+        }
+
+        patterns["saw"] = [
+            SequencerNote(row: row("C-6"), startStep: 1, length: 1, velocity: 0.45),
+            SequencerNote(row: row("G-5"), startStep: 5, length: 1, velocity: 0.45),
+            SequencerNote(row: row("A-5"), startStep: 9, length: 1, velocity: 0.45),
+            SequencerNote(row: row("G-5"), startStep: 13, length: 1, velocity: 0.45),
+            SequencerNote(row: row("F-5"), startStep: 17, length: 1, velocity: 0.45),
+            SequencerNote(row: row("E-5"), startStep: 21, length: 1, velocity: 0.45),
+            SequencerNote(row: row("D-5"), startStep: 25, length: 1, velocity: 0.45),
+            SequencerNote(row: row("C-5"), startStep: 29, length: 1, velocity: 0.45)
+        ]
+
+        patterns["kick"] = [0, 8, 16, 24].map { step in
+            SequencerNote(row: row("C-4"), startStep: step, length: 1, velocity: 1.0)
+        }
+
+        patterns["snare"] = [8, 24].map { step in
+            SequencerNote(row: row("C-5"), startStep: step, length: 1, velocity: 0.86)
+        }
+
+        patterns["hat"] = stride(from: 2, to: 32, by: 4).map { step in
+            SequencerNote(row: row("G-5"), startStep: step, length: 1, velocity: step.isMultiple(of: 8) ? 0.42 : 0.58)
         }
 
         return ChipTuneProject(

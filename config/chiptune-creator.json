@@ -60,10 +60,34 @@
       "volume": 0.42
     },
     {
+      "id": "saw",
+      "title": "Saw Lead",
+      "waveform": "saw",
+      "volume": 0.32
+    },
+    {
       "id": "noise",
       "title": "Noise",
       "waveform": "noise",
-      "volume": 0.26
+      "volume": 0.24
+    },
+    {
+      "id": "kick",
+      "title": "Kick",
+      "waveform": "kick",
+      "volume": 0.62
+    },
+    {
+      "id": "snare",
+      "title": "Snare",
+      "waveform": "snare",
+      "volume": 0.42
+    },
+    {
+      "id": "hat",
+      "title": "Hat",
+      "waveform": "hat",
+      "volume": 0.28
     }
   ]
 }
